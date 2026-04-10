@@ -1,34 +1,23 @@
 from pathlib import Path
 
-from app.generator import convert_sections_to_markdown, render_body_from_markdown
-from app.parser import parse_docx
-from app.schemas import SectionNode
+from backend.app.contracts import CapabilityFlags
+from backend.app.services.parse import normalize_text_input, parse_docx_file
 
 
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "sample-thesis.docx"
 
 
 def test_parse_docx_extracts_expected_sections():
-    result = parse_docx(FIXTURE)
-    kinds = [section.kind for section in result.sections]
-    assert "abstract_cn" in kinds
-    assert "abstract_en" in kinds
-    assert "references" in kinds
-    assert "acknowledgements" in kinds
-    assert "appendix" in kinds
+    thesis = parse_docx_file(FIXTURE, CapabilityFlags(tex_zip=True, pdf=False, pdf_reason="local only"))
+    assert thesis.abstract_cn.content
+    assert thesis.abstract_en.content
+    assert thesis.references.items
+    assert thesis.acknowledgements
+    assert thesis.appendix
 
 
-def test_convert_sections_to_markdown_preserves_titles():
-    markdown = convert_sections_to_markdown(
-        [
-            SectionNode(kind="body", title="引言", content="第一段"),
-            SectionNode(kind="body", title="方案设计", content="第二段"),
-        ]
-    )
-    assert "# 引言" in markdown
-    assert "# 方案设计" in markdown
-
-
-def test_render_body_from_markdown_adds_fallback_section():
-    latex = render_body_from_markdown("这是没有标题的正文。")
-    assert "\\section{正文}" in latex
+def test_text_normalize_adds_missing_abstract_warnings():
+    thesis = normalize_text_input("# 引言\n\n正文内容。", CapabilityFlags(tex_zip=True, pdf=False, pdf_reason="local only"))
+    assert thesis.body_sections
+    assert "未识别到中文摘要，可在下一步补充。" in thesis.warnings
+    assert "未识别到 Abstract，可在下一步补充。" in thesis.warnings
