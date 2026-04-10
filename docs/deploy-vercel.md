@@ -42,6 +42,8 @@ cd /Users/ethan/scnu-thesis-portal
 vercel
 ```
 
+当前仓库的 Python 运行时基线为 `3.12`。Vercel 云端会按仓库配置安装依赖；本地 `vercel dev` 则会受你机器上 `python3` 默认版本影响。
+
 ## 本地模拟 Vercel
 
 在执行前，请先确保前端构建产物已经同步到 `public/`：
@@ -49,8 +51,10 @@ vercel
 ```bash
 cd /Users/ethan/scnu-thesis-portal
 python3 scripts/build_web_public.py
-vercel dev
+PATH="$(dirname "$(uv python find 3.12)"):$PATH" vercel dev
 ```
+
+如果你的系统 `python3` 仍指向 3.9 或更低，本地 Python Function 可能会因为解释器版本不匹配而无法启动；优先用上面的 `PATH` 方式显式切到 `uv` 管理的 3.12。
 
 ## 生产部署
 
@@ -73,3 +77,4 @@ vercel --prod
 - 不支持 `.doc`
 - 不保留原 Word 样式
 - 不承诺复杂表格、图片、特殊格式完整恢复
+- 不把服务器文件系统当作持久状态

@@ -1,58 +1,62 @@
-# 本地运行说明
+# 本地开发说明
 
-## 1. 安装后端依赖
-
-```bash
-cd /Users/ethan/scnu-thesis-portal
-uv sync --project backend
-```
-
-## 2. 安装前端依赖
-
-```bash
-cd /Users/ethan/scnu-thesis-portal/web
-npm install
-```
-
-## 3. 启动后端
+## 1. 安装依赖
 
 ```bash
 cd /Users/ethan/scnu-thesis-portal
-uv run --project backend uvicorn app.main:app --reload --port 8000
+uv sync --extra dev
+npm install --prefix web
 ```
 
-## 4. 启动前端
+## 2. 启动后端
 
 ```bash
-cd /Users/ethan/scnu-thesis-portal/web
-npm run dev
+cd /Users/ethan/scnu-thesis-portal
+uv run uvicorn backend.app.main:app --reload --port 8000
 ```
 
-## 5. 构建本地演示版
+## 3. 启动前端
 
 ```bash
-cd /Users/ethan/scnu-thesis-portal/web
-npm run build
+cd /Users/ethan/scnu-thesis-portal
+npm run dev --prefix web
 ```
 
-构建完成后，后端会优先托管 `web/dist` 作为单入口演示页面。
-
-## 6. 注意事项
-
-- 仅支持 `.docx`
-- 当前不支持 `.doc`
-- 当前不保留原 Word 样式
-- 当前依赖本地 XeLaTeX 环境
-- 如果缺少 TeX 宏包，接口会返回明确错误
-
-## 7. 如缺少 TeX 宏包
-
-当前模板主线至少依赖 `titlesec` 包。
-
-如果本机是 TeX Live 2025 user tree，可用：
+## 4. 生成静态前端并模拟 Vercel
 
 ```bash
-tlmgr init-usertree
-tlmgr --usermode option repository https://ftp.math.utah.edu/pub/tex/historic/systems/texlive/2025/tlnet-final
-tlmgr --usermode install titlesec
+cd /Users/ethan/scnu-thesis-portal
+uv run python scripts/generate_frontend_types.py
+python3 scripts/build_web_public.py
+PATH="$(dirname "$(uv python find 3.12)"):$PATH" vercel dev
+```
+
+如果本机默认 `python3` 仍是 3.9 或更低，`vercel dev` 的 Python Function 本地启动会失败。当前仓库已经锁定到 Python 3.12，因此本地模拟时建议显式把 `uv` 管理的 3.12 放到 `PATH` 前面。
+
+## 5. 本地 PDF 能力
+
+本地环境默认允许尝试导出 PDF，但前提是：
+
+- 已安装 `xelatex`
+- 已安装 `kpsewhich`
+- TeX 宏包至少包含 `ctex`、`titlesec`、`titletoc`
+
+如需明确关闭本地 PDF：
+
+```bash
+export ENABLE_PDF_EXPORT=0
+```
+
+如需保留调试产物：
+
+```bash
+export SCNU_DEBUG_PERSIST_ARTIFACTS=1
+```
+
+## 6. 本地验收
+
+```bash
+cd /Users/ethan/scnu-thesis-portal
+uv run pytest tests -q
+npm run test:smoke --prefix web
 ```

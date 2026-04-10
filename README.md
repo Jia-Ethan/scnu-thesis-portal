@@ -1,43 +1,62 @@
 # scnu-thesis-portal
 
-面向华南师范大学论文写作场景的模板整合与使用入口。
+面向华南师范大学论文写作场景的结构识别与模板导出 web-app。
 
-## 当前定位
+## 当前线上可用能力
 
-这个仓库目前不是成型的网站产品，也不是“官方规范已验证”的模板发布仓库。
+- 上传 `.docx`
+- 粘贴正文文本
+- 识别摘要、Abstract、正文章节、参考文献、致谢、附录
+- 在网页内补全和修正字段
+- 导出规范化 `.tex` 工程 zip
 
-它当前更像一个面向后续迭代的 Portal 雏形：先把现有模板、研究材料和产品判断整理清楚，再逐步演进为真正可用的论文工具入口。
+## 当前明确边界
 
-## 当前已有
+- 仅支持 `.docx`，不支持 `.doc`
+- 不保留原 Word 样式
+- 复杂表格、图片、脚注、特殊排版未完整支持
+- 当前不是学校官方认证工具
+- 当前不承诺学校模板已逐条核验完成
+- 生产环境默认不承诺 PDF 导出
 
-- 三套已收集的 LaTeX 模板，保留在 `templates/upstream/`
-- 一份研究输入材料，保留在 `docs/research/`
-- 一版项目盘点文档：`docs/inventory.md`
-- 一版 PRD：`docs/PRD-v0.1.md`
+## 项目结构
 
-## 当前还没有
+- `web/`：React + Vite 前端
+- `backend/`：Python 业务逻辑与 API
+- `api/`：Vercel Python 入口
+- `templates/working/latex-scnu-web/`：当前首轮主线工作模板
+- `templates/upstream/`：保留的上游参考模板
+- `docs/`：审查、范围、部署、验收文档
+- `examples/`：示例输入材料
 
-- 对学校官方规范的最终逐条核验
-- 对三套模板的完整编译与可用性实测结论
-- 面向真实用户的 Web Portal 页面
-- 自动格式修复、自动排版纠错或全文生成能力
+## 本地开发
 
-## 这个项目想解决什么问题
+```bash
+cd /Users/ethan/scnu-thesis-portal
+uv sync --extra dev
+npm install --prefix web
+uv run uvicorn backend.app.main:app --reload --port 8000
+```
 
-华南师范大学论文模板来源分散，模板之间差异不透明，普通学生很难快速判断“该用哪套、怎么开始、哪些坑要先避开”。
+另开一个终端：
 
-这个项目的目标不是直接替代论文写作过程，而是先降低选型、上手和理解成本，给用户一个更清晰的入口，也为后续做静态站点或轻量 Portal 沉淀结构化内容。
+```bash
+cd /Users/ethan/scnu-thesis-portal
+npm run dev --prefix web
+```
 
-## 当前目录说明
+## Vercel 部署
 
-- `templates/upstream/`：原始模板材料，先保守保留，不改源码内容
-- `docs/`：项目文档、盘点、PRD、研究输入
-- `archive/`：后续用于归档非主线或历史资料
-- `examples/`：后续用于放示例输出
-- `scripts/`：后续用于放辅助脚本
+部署说明见：
 
-## 当前建议的下一步
+- `docs/deploy-vercel.md`
 
-1. 完成三套模板的差异对比与适用场景说明。
-2. 对主线候选模板做最小编译验证，补真实结论。
-3. 在文档充分后，再决定 v0.3 的 Portal 页面形态。
+预览地址：
+
+- 待本轮预览部署完成后补充
+
+## Roadmap
+
+- `v0.2`：首轮上线为结构识别、字段修正、`.tex` zip 导出
+- `v0.3`：继续完善复杂 `.docx` 识别、体验与错误反馈
+- `v0.4+`：在验证环境稳定后，再评估是否恢复线上 PDF

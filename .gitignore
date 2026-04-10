@@ -38,8 +38,11 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .venv/
+/backend/.venv/
 
 # Node
 web/node_modules/
 web/dist/
 *.tsbuildinfo
+public/
+.vercel/
