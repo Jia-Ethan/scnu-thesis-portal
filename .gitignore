@@ -18,3 +18,23 @@
 
 # Editor / OS noise
 Thumbs.db
+
+# Local outputs
+outputs/*
+!outputs/.gitkeep
+!outputs/jobs/
+!outputs/jobs/.gitkeep
+tmp/*
+!tmp/.gitkeep
+!tmp/jobs/
+!tmp/jobs/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+
+# Node
+web/node_modules/
+web/dist/
