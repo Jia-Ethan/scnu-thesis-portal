@@ -4,7 +4,7 @@
 
 - 一个 Vercel 项目
 - 根级 `public/` 提供静态前端
-- 根级 `index.py` 提供 Python FastAPI 接口，`/api/*` rewrite 到该入口
+- 根级 `index.py` 提供 Python FastAPI 接口，`/api/*` rewrite 到 Vercel 生成的 `index` Function
 - 生产环境默认只承诺 `.tex` 工程 zip 导出
 
 ## 首次部署
@@ -78,3 +78,4 @@ vercel --prod
 - 不保留原 Word 样式
 - 不承诺复杂表格、图片、特殊格式完整恢复
 - 不把服务器文件系统当作持久状态
+- Vercel 打包通过 `.vercelignore` 排除上游模板、历史输出和临时目录；生产导出只依赖 `templates/working/latex-scnu-web/`
