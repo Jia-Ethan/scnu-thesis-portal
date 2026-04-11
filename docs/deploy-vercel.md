@@ -3,8 +3,10 @@
 ## 目标架构
 
 - 一个 Vercel 项目
-- 根级 `public/` 提供静态前端
-- 根级 `index.py` 提供 Python FastAPI 接口，`/api/*` rewrite 到 Vercel 生成的 `index` Function
+- 构建阶段将 `web/dist` 同步到根级 `public/`
+- 根级 `index.py` 暴露 Python FastAPI 应用
+- 因当前不使用 Vercel Services，FastAPI 在根路径提供 `public/index.html`，并在 `/assets/*` 提供前端静态资源
+- `/api/*` 保持为结构化解析、标准化与导出接口
 - 生产环境默认只承诺 `.tex` 工程 zip 导出
 
 ## 首次部署
@@ -51,6 +53,12 @@ vercel
 ```
 
 当前仓库的 Python 运行时基线为 `3.12`。Vercel 云端会按仓库配置安装依赖；本地 `vercel dev` 则会受你机器上 `python3` 默认版本影响。
+
+当前预览地址：
+
+- https://scnu-thesis-portal-l2td7hkk6-jia-ethans-projects.vercel.app
+
+如果预览环境出现 SSO 登录页，需要在 Vercel 项目中关闭 preview deployment 的 SSO protection，或提供 bypass 链接后再验收。
 
 ## 本地模拟 Vercel
 

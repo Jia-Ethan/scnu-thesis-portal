@@ -53,7 +53,7 @@ npm run dev --prefix web
 
 预览地址：
 
-- 待本轮预览部署完成后补充
+- https://scnu-thesis-portal-l2td7hkk6-jia-ethans-projects.vercel.app
 
 ## Roadmap
 

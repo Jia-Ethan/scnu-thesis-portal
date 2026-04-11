@@ -6,10 +6,11 @@ import tempfile
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 
 from .config import ALLOWED_DOCX_EXTENSIONS, APP_ENV, ENABLE_PDF_EXPORT, MAX_UPLOAD_SIZE_BYTES, TEMPLATE_NAME
 from .contracts import CapabilityFlags, HealthResponse, NormalizedThesis, ServiceLimits, TextNormalizeRequest
@@ -20,6 +21,10 @@ from .services.pdf import check_tex_environment, export_pdf
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 logger = logging.getLogger("scnu-thesis-portal")
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PUBLIC_DIR = PROJECT_ROOT / "public"
+PUBLIC_INDEX = PUBLIC_DIR / "index.html"
+PUBLIC_ASSETS = PUBLIC_DIR / "assets"
 
 
 @asynccontextmanager
@@ -28,6 +33,9 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="SCNU Thesis Portal", lifespan=lifespan)
+
+if PUBLIC_ASSETS.exists():
+    app.mount("/assets", StaticFiles(directory=PUBLIC_ASSETS), name="assets")
 
 app.add_middleware(
     CORSMiddleware,
@@ -124,10 +132,19 @@ def export_pdf_route(thesis: NormalizedThesis):
     )
 
 
+def serve_spa_index() -> FileResponse:
+    if not PUBLIC_INDEX.exists():
+        raise HTTPException(status_code=404, detail="Frontend build not found. Run scripts/build_web_public.py first.")
+    return FileResponse(PUBLIC_INDEX)
+
+
 @app.get("/", include_in_schema=False)
-def root_placeholder():
-    return {
-        "message": "SCNU Thesis Portal API is running.",
-        "app_env": APP_ENV,
-        "template": TEMPLATE_NAME,
-    }
+def frontend_root() -> FileResponse:
+    return serve_spa_index()
+
+
+@app.get("/{full_path:path}", include_in_schema=False)
+def frontend_fallback(full_path: str) -> FileResponse:
+    if full_path.startswith("api/"):
+        raise HTTPException(status_code=404, detail="Not Found")
+    return serve_spa_index()
