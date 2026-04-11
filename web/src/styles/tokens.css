@@ -1,0 +1,66 @@
+:root {
+  color-scheme: light;
+
+  --color-bg: #f5f5f7;
+  --color-bg-soft: #fbfbfd;
+  --color-bg-wash: #eef3f8;
+  --color-text: #1d1d1f;
+  --color-text-soft: #424245;
+  --color-text-muted: #6e6e73;
+  --color-border: rgba(0, 0, 0, 0.1);
+  --color-border-strong: rgba(0, 0, 0, 0.16);
+  --color-accent: #0071e3;
+  --color-accent-pressed: #0064c8;
+  --color-accent-soft: #eaf4ff;
+  --color-success: #147a3d;
+  --color-success-soft: #edf8f1;
+  --color-warning: #8a5a00;
+  --color-warning-soft: #fff8e8;
+  --color-danger: #b42334;
+  --color-danger-soft: #fff1f2;
+  --color-focus: rgba(0, 113, 227, 0.28);
+
+  --surface-solid: rgba(255, 255, 255, 0.94);
+  --surface-glass: rgba(255, 255, 255, 0.72);
+  --surface-muted: rgba(255, 255, 255, 0.64);
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 8px;
+
+  --shadow-soft: 0 18px 48px rgba(0, 0, 0, 0.08);
+  --shadow-thin: 0 8px 24px rgba(0, 0, 0, 0.06);
+  --shadow-focus: 0 0 0 4px var(--color-focus);
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-7: 2rem;
+  --space-8: 2.5rem;
+  --space-9: 3rem;
+
+  --font-sans: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+  --font-mono: "SFMono-Regular", "SF Mono", Consolas, monospace;
+  --text-xs: 0.78rem;
+  --text-sm: 0.88rem;
+  --text-md: 1rem;
+  --text-lg: 1.12rem;
+  --text-xl: 1.45rem;
+  --text-2xl: 2.25rem;
+  --text-3xl: 3.25rem;
+
+  --line-tight: 1.08;
+  --line-normal: 1.55;
+  --line-relaxed: 1.72;
+
+  --motion-fast: 120ms;
+  --motion-base: 180ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  --z-toast: 50;
+  --z-overlay: 40;
+}
