@@ -3,7 +3,7 @@
   "buildCommand": "npm ci --prefix web && python3 scripts/build_web_public.py",
   "outputDirectory": "public",
   "functions": {
-    "api/index.py": {
+    "api/**/*.py": {
       "maxDuration": 60,
       "includeFiles": "templates/working/latex-scnu-web/**"
     }
