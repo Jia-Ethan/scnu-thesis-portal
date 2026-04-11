@@ -5,6 +5,12 @@ export type InputMode = "docx" | "text";
 export type ExportKind = "tex" | "pdf";
 export type WorkspaceStep = "input" | "recognizing" | "review" | "export";
 
+export type ToastState = {
+  tone: "success" | "info";
+  title: string;
+  message: string;
+} | null;
+
 export type FriendlyError = {
   title: string;
   message: string;
