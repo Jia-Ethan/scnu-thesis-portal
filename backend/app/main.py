@@ -1,48 +1,66 @@
 from __future__ import annotations
 
+import io
 import logging
-import threading
+import tempfile
+from base64 import b64decode
+from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
-from .config import ALLOWED_DOCX_EXTENSIONS, MAX_UPLOAD_SIZE_BYTES, OUTPUT_JOBS_DIR, TMP_JOBS_DIR, WEB_DIST_DIR, ensure_runtime_dirs
-from .errors import AppError
-from .generator import (
-    build_status_response,
-    check_tex_environment,
-    create_job,
-    load_manifest,
-    process_docx_job,
-    process_form_job,
+from .config import (
+    ALLOWED_DOCX_CONTENT_TYPES,
+    ALLOWED_DOCX_EXTENSIONS,
+    APP_ENV,
+    CORS_ALLOWED_ORIGINS,
+    ENABLE_PDF_EXPORT,
+    MAX_UPLOAD_SIZE_BYTES,
+    TEMPLATE_NAME,
 )
-from .schemas import JobCreateResponse, JobStatusResponse, ThesisGenerationRequest
+from .contracts import CapabilityFlags, HealthResponse, NormalizedThesis, ServiceLimits, TextNormalizeRequest
+from .errors import AppError
+from .services.export import export_texzip
+from .services.parse import normalize_text_input, parse_docx_file
+from .services.pdf import check_tex_environment, export_pdf
+
+try:
+    from .frontend_bundle import ASSETS as BUNDLED_ASSETS
+    from .frontend_bundle import INDEX_HTML as BUNDLED_INDEX_HTML
+except ImportError:
+    # Local development can run the API before the Vite build exists.
+    BUNDLED_ASSETS = {}
+    BUNDLED_INDEX_HTML = None
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 logger = logging.getLogger("scnu-thesis-portal")
-
-app = FastAPI(title="SCNU Thesis Portal Local MVP")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://127.0.0.1:5173", "http://localhost:5173"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PUBLIC_DIR = PROJECT_ROOT / "public"
+PUBLIC_INDEX = PUBLIC_DIR / "index.html"
+PUBLIC_ASSETS = PUBLIC_DIR / "assets"
 
 
-@app.on_event("startup")
-def on_startup() -> None:
-    ensure_runtime_dirs()
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    yield
 
 
-def job_thread(target, *args) -> None:
-    thread = threading.Thread(target=target, args=args, daemon=True)
-    thread.start()
+app = FastAPI(title="SCNU Thesis Portal", lifespan=lifespan)
+
+if PUBLIC_ASSETS.exists():
+    app.mount("/assets", StaticFiles(directory=PUBLIC_ASSETS), name="assets")
+
+if CORS_ALLOWED_ORIGINS:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=CORS_ALLOWED_ORIGINS,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 
 @app.exception_handler(AppError)
@@ -69,100 +87,108 @@ async def handle_validation_error(_request, exc: RequestValidationError):
     )
 
 
-@app.get("/api/health")
-def health() -> dict:
+def capability_flags() -> CapabilityFlags:
     tex_status = check_tex_environment()
-    return {"ok": True, "tex": tex_status}
+    if ENABLE_PDF_EXPORT and tex_status.xelatex and tex_status.kpsewhich and not tex_status.missing_styles:
+        return CapabilityFlags(tex_zip=True, pdf=True, pdf_reason=None)
+    if ENABLE_PDF_EXPORT:
+        return CapabilityFlags(tex_zip=True, pdf=False, pdf_reason="本地 TeX 依赖缺失，暂不可导出 PDF。")
+    return CapabilityFlags(tex_zip=True, pdf=False, pdf_reason="生产环境默认关闭 PDF，请导出 tex 工程 zip。")
 
 
-@app.post("/api/jobs/from-form", response_model=JobCreateResponse)
-def create_job_from_form(request: ThesisGenerationRequest) -> JobCreateResponse:
-    job_id, output_dir, tmp_dir, manifest_path = create_job("form")
-    job_thread(process_form_job, job_id, manifest_path, output_dir, tmp_dir, request)
-    return JobCreateResponse(job_id=job_id, status="queued")
+@app.get("/api/health", response_model=HealthResponse)
+def health() -> HealthResponse:
+    return HealthResponse(
+        app_env=APP_ENV,
+        template=TEMPLATE_NAME,
+        capabilities=capability_flags(),
+        limits=ServiceLimits(max_docx_size_bytes=MAX_UPLOAD_SIZE_BYTES),
+        tex=check_tex_environment(),
+    )
 
 
-@app.post("/api/jobs/from-docx", response_model=JobCreateResponse)
-async def create_job_from_docx(
-    file: UploadFile = File(...),
-    title: str = Form(...),
-    author_name: str = Form(...),
-    student_id: str = Form(...),
-    department: str = Form(...),
-    major: str = Form(...),
-    class_name: str = Form(...),
-    advisor_name: str = Form(...),
-    submission_date: str = Form(...),
-) -> JobCreateResponse:
+@app.post("/api/parse/docx", response_model=NormalizedThesis)
+async def parse_docx(file: UploadFile = File(...)) -> NormalizedThesis:
     suffix = Path(file.filename or "").suffix.lower()
     if suffix not in ALLOWED_DOCX_EXTENSIONS:
-        raise AppError("DOCX_INVALID", "仅支持上传 .docx 文件", status_code=400)
+        raise AppError("UNSUPPORTED_FILE_TYPE", "请上传 .docx 文件，暂不支持 .doc 或其他格式。", status_code=400)
+    if (file.content_type or "") not in ALLOWED_DOCX_CONTENT_TYPES:
+        raise AppError("UNSUPPORTED_FILE_TYPE", "文件类型不符合 .docx，请重新选择 Word 文档。", status_code=400)
 
     payload = await file.read()
     if not payload:
-        raise AppError("CONTENT_EMPTY", "上传文件为空", status_code=400)
+        raise AppError("CONTENT_EMPTY", "上传文件为空，请选择包含论文内容的 .docx 文件。", status_code=400)
     if len(payload) > MAX_UPLOAD_SIZE_BYTES:
-        raise AppError("DOCX_INVALID", "上传文件过大", status_code=400)
+        raise AppError("FILE_TOO_LARGE", "文件超过当前上传大小限制，请压缩或删减后再试。", status_code=400)
+    if not payload.startswith(b"PK"):
+        raise AppError("DOCX_INVALID", "上传文件不是有效的 .docx 文档，请确认文件未损坏。", status_code=400)
 
-    job_id, output_dir, tmp_dir, manifest_path = create_job("docx")
-    upload_path = tmp_dir / "uploads" / "input.docx"
-    upload_path.write_bytes(payload)
-    metadata = {
-        "title": title.strip(),
-        "author_name": author_name.strip(),
-        "student_id": student_id.strip(),
-        "department": department.strip(),
-        "major": major.strip(),
-        "class_name": class_name.strip(),
-        "advisor_name": advisor_name.strip(),
-        "submission_date": submission_date.strip(),
-    }
-    job_thread(process_docx_job, job_id, manifest_path, output_dir, tmp_dir, upload_path, metadata)
-    return JobCreateResponse(job_id=job_id, status="queued")
+    with tempfile.TemporaryDirectory(prefix="scnu-parse-docx-") as tmp:
+        upload_path = Path(tmp) / "input.docx"
+        upload_path.write_bytes(payload)
+        return parse_docx_file(upload_path, capability_flags())
 
 
-@app.get("/api/jobs/{job_id}", response_model=JobStatusResponse)
-def get_job(job_id: str) -> JobStatusResponse:
-    manifest = load_manifest(job_id)
-    return build_status_response(manifest)
+@app.post("/api/normalize/text", response_model=NormalizedThesis)
+def normalize_text(request: TextNormalizeRequest) -> NormalizedThesis:
+    if not request.text.strip():
+        raise AppError("CONTENT_EMPTY", "粘贴内容为空，请先输入论文正文或章节内容。", status_code=400)
+    return normalize_text_input(request.text, capability_flags())
 
 
-@app.get("/api/jobs/{job_id}/artifacts/pdf")
-def download_pdf(job_id: str):
-    manifest = load_manifest(job_id)
-    pdf_path = manifest.get("artifacts", {}).get("pdf_path")
-    if not pdf_path or not Path(pdf_path).exists():
-        raise HTTPException(status_code=404, detail="PDF 不存在")
-    return FileResponse(pdf_path, media_type="application/pdf", filename=f"{job_id}.pdf")
+@app.post("/api/export/texzip")
+def export_texzip_route(thesis: NormalizedThesis):
+    payload = export_texzip(thesis)
+    return StreamingResponse(
+        io.BytesIO(payload),
+        media_type="application/zip",
+        headers={"Content-Disposition": 'attachment; filename="scnu-thesis.zip"'},
+    )
 
 
-@app.get("/api/jobs/{job_id}/artifacts/texzip")
-def download_texzip(job_id: str):
-    manifest = load_manifest(job_id)
-    texzip_path = manifest.get("artifacts", {}).get("texzip_path")
-    if not texzip_path or not Path(texzip_path).exists():
-        raise HTTPException(status_code=404, detail="tex 工程压缩包不存在")
-    return FileResponse(texzip_path, media_type="application/zip", filename=f"{job_id}.zip")
+@app.post("/api/export/pdf")
+def export_pdf_route(thesis: NormalizedThesis):
+    payload = export_pdf(thesis)
+    return StreamingResponse(
+        io.BytesIO(payload),
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'attachment; filename="scnu-thesis.pdf"'},
+    )
 
 
-if WEB_DIST_DIR.exists():
-    assets_dir = WEB_DIST_DIR / "assets"
-    if assets_dir.exists():
-        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+@app.get("/assets/{asset_path:path}", include_in_schema=False)
+def frontend_asset(asset_path: str) -> Response:
+    bundled_asset = BUNDLED_ASSETS.get(asset_path)
+    if bundled_asset:
+        return Response(
+            content=b64decode(bundled_asset["body_b64"]),
+            media_type=bundled_asset["content_type"],
+        )
+    try:
+        asset_file = (PUBLIC_ASSETS / asset_path).resolve()
+        asset_file.relative_to(PUBLIC_ASSETS.resolve())
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Not Found") from None
+    if asset_file.exists() and asset_file.is_file():
+        return FileResponse(asset_file)
+    raise HTTPException(status_code=404, detail="Not Found")
 
-    @app.get("/", include_in_schema=False)
-    def serve_index():
-        return FileResponse(WEB_DIST_DIR / "index.html")
 
-    @app.get("/{full_path:path}", include_in_schema=False)
-    def serve_spa(full_path: str):
-        candidate = WEB_DIST_DIR / full_path
-        if candidate.exists() and candidate.is_file():
-            return FileResponse(candidate)
-        return FileResponse(WEB_DIST_DIR / "index.html")
-else:
-    @app.get("/", include_in_schema=False)
-    def root_placeholder():
-        return {
-            "message": "前端尚未构建。开发模式请启动 Vite，演示模式请先执行 npm run build。"
-        }
+def serve_spa_index() -> Response:
+    if BUNDLED_INDEX_HTML:
+        return Response(content=BUNDLED_INDEX_HTML, media_type="text/html")
+    if not PUBLIC_INDEX.exists():
+        raise HTTPException(status_code=404, detail="Frontend build not found. Run scripts/build_web_public.py first.")
+    return FileResponse(PUBLIC_INDEX)
+
+
+@app.get("/", include_in_schema=False)
+def frontend_root() -> Response:
+    return serve_spa_index()
+
+
+@app.get("/{full_path:path}", include_in_schema=False)
+def frontend_fallback(full_path: str) -> Response:
+    if full_path.startswith("api/"):
+        raise HTTPException(status_code=404, detail="Not Found")
+    return serve_spa_index()
