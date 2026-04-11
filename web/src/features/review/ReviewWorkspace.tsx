@@ -1,4 +1,5 @@
 import type { BodySection, MetadataFields, NormalizedThesis, SummarySection } from "../../generated/contracts";
+import type { ExportReadiness } from "../../app/domain";
 import { AbstractEditors } from "./AbstractEditors";
 import { AppendixEditor } from "./AppendixEditor";
 import { MetadataEditor } from "./MetadataEditor";
@@ -7,6 +8,7 @@ import { SectionsEditor } from "./SectionsEditor";
 
 type ReviewWorkspaceProps = {
   thesis: NormalizedThesis;
+  readiness: ExportReadiness;
   updateMetadata: (field: keyof MetadataFields, value: string) => void;
   updateAbstract: (kind: "cn" | "en", patch: Partial<SummarySection>) => void;
   updateSection: (index: number, patch: Partial<BodySection>) => void;
@@ -18,6 +20,7 @@ type ReviewWorkspaceProps = {
 
 export function ReviewWorkspace({
   thesis,
+  readiness,
   updateMetadata,
   updateAbstract,
   updateSection,
@@ -28,7 +31,7 @@ export function ReviewWorkspace({
 }: ReviewWorkspaceProps) {
   return (
     <div className="review-workspace" aria-label="论文内容校对区">
-      <MetadataEditor metadata={thesis.metadata} onChange={updateMetadata} />
+      <MetadataEditor metadata={thesis.metadata} readiness={readiness} onChange={updateMetadata} />
       <AbstractEditors abstractCn={thesis.abstract_cn} abstractEn={thesis.abstract_en} onChange={updateAbstract} />
       <SectionsEditor sections={thesis.body_sections} onChange={updateSection} onAdd={addSection} onRemove={removeSection} />
       <ReferencesEditor thesis={thesis} onChange={updateReferences} />

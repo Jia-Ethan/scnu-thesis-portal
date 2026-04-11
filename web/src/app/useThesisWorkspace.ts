@@ -7,7 +7,9 @@ import {
   WorkspaceStep,
   createBlankSection,
   defaultThesis,
+  formatFieldList,
   hydrateThesis,
+  validateExportReadiness,
 } from "./domain";
 
 export type ToastState = {
@@ -35,6 +37,7 @@ export function useThesisWorkspace() {
   }, []);
 
   const currentThesis = useMemo(() => thesis ?? defaultThesis(health), [health, thesis]);
+  const exportReadiness = useMemo(() => validateExportReadiness(currentThesis), [currentThesis]);
   const step: WorkspaceStep = exporting ? "export" : busy ? "recognizing" : thesis ? "review" : "input";
 
   function resetError() {
@@ -146,6 +149,18 @@ export function useThesisWorkspace() {
   async function handleExport(kind: ExportKind) {
     resetError();
     clearToast();
+
+    if (kind === "tex" && !exportReadiness.canExport) {
+      setError(
+        new ApiError(
+          `导出前请先补全：${formatFieldList(exportReadiness.missingRequired)}。`,
+          "FIELD_MISSING",
+          { missing_fields: exportReadiness.missingRequired.map((item) => item.field) },
+        ),
+      );
+      return;
+    }
+
     setExporting(kind);
     try {
       const blob = await exportThesis(kind, currentThesis);
@@ -170,6 +185,7 @@ export function useThesisWorkspace() {
     rawText,
     thesis,
     currentThesis,
+    exportReadiness,
     busy,
     exporting,
     error,

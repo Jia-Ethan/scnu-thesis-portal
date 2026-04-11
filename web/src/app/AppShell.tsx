@@ -66,6 +66,7 @@ export function AppShell() {
                 main={
                   <ReviewWorkspace
                     thesis={workspace.currentThesis}
+                    readiness={workspace.exportReadiness}
                     updateMetadata={workspace.updateMetadata}
                     updateAbstract={workspace.updateAbstract}
                     updateSection={workspace.updateSection}
@@ -78,7 +79,12 @@ export function AppShell() {
                 side={
                   <div className="side-stack">
                     <ReviewSummary thesis={workspace.currentThesis} />
-                    <ExportPanel thesis={workspace.currentThesis} exporting={workspace.exporting} onExport={workspace.handleExport} />
+                    <ExportPanel
+                      thesis={workspace.currentThesis}
+                      readiness={workspace.exportReadiness}
+                      exporting={workspace.exporting}
+                      onExport={workspace.handleExport}
+                    />
                   </div>
                 }
               />
