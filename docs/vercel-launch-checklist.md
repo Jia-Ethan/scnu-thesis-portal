@@ -33,17 +33,23 @@
 
 ## Vercel 预览环境
 
-- [ ] preview URL 可访问
-- [ ] 首页展示支持范围与不支持范围
-- [ ] 上传 `.docx` 后可看到识别结果
-- [ ] 粘贴正文后可看到识别结果
-- [ ] 用户可在网页内修正字段
-- [ ] `.tex` zip 可下载
-- [ ] 生产环境 PDF 按钮默认隐藏，或接口明确返回 `PDF_DISABLED`
-- [ ] 错误提示清楚，不出现裸 `500`
+- [x] preview URL 可访问：`https://scnu-thesis-portal-exgypusjz-jia-ethans-projects.vercel.app`
+- [x] 首页展示支持范围与不支持范围
+- [x] 上传 `.docx` 后可通过 `/api/parse/docx` 看到识别结果
+- [x] 粘贴正文后可通过 `/api/normalize/text` 看到识别结果
+- [x] 用户可在网页内修正字段
+- [x] `.tex` zip 可下载：补全 metadata 后 `/api/export/texzip` 返回 `200 application/zip`
+- [x] 生产环境 PDF 按钮默认隐藏，接口明确返回 `PDF_DISABLED`
+- [x] 错误提示清楚，不出现裸 `500`：非 `.docx` 返回 `UNSUPPORTED_FILE_TYPE`，缺封面字段返回 `FIELD_MISSING`
+
+补充实测：
+
+- Vercel 项目最初启用了 SSO protection，公开访问返回 `401`；已关闭该项目 preview SSO protection 后完成公开验收。
+- 根级 FastAPI 入口会接管站点路由，因此构建脚本会生成 `backend/app/frontend_bundle.py`，让前端 HTML/CSS/JS 随 Python Function 一起部署。
+- 预览环境没有 XeLaTeX 与相关宏包，符合首轮“生产默认关闭 PDF，仅导出 `.tex` zip”的边界。
 
 ## 测试
 
 - [x] pytest 全通过
 - [x] 前端 smoke test 通过
-- [ ] 手工验收记录已补充到文档或 PR 描述
+- [x] 手工验收记录已补充到文档或 PR 描述
