@@ -39,6 +39,7 @@ __pycache__/
 .pytest_cache/
 .venv/
 /backend/.venv/
+backend/app/frontend_bundle.py
 
 # Node
 web/node_modules/

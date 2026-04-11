@@ -7,6 +7,7 @@
 - 根级 `index.py` 暴露 Python FastAPI 应用
 - 因当前不使用 Vercel Services，FastAPI 在根路径提供 `public/index.html`，并在 `/assets/*` 提供前端静态资源
 - `/api/*` 保持为结构化解析、标准化与导出接口
+- `scripts/build_web_public.py` 会额外生成 `backend/app/frontend_bundle.py`，把首轮前端构建产物打进 Python 函数包；该文件是构建产物，不入库
 - 生产环境默认只承诺 `.tex` 工程 zip 导出
 
 ## 首次部署

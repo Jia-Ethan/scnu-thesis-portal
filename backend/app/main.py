@@ -3,13 +3,14 @@ from __future__ import annotations
 import io
 import logging
 import tempfile
+from base64 import b64decode
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from .config import ALLOWED_DOCX_EXTENSIONS, APP_ENV, ENABLE_PDF_EXPORT, MAX_UPLOAD_SIZE_BYTES, TEMPLATE_NAME
@@ -18,6 +19,13 @@ from .errors import AppError
 from .services.export import export_texzip
 from .services.parse import normalize_text_input, parse_docx_file
 from .services.pdf import check_tex_environment, export_pdf
+
+try:
+    from .frontend_bundle import ASSETS as BUNDLED_ASSETS
+    from .frontend_bundle import INDEX_HTML as BUNDLED_INDEX_HTML
+except ImportError:
+    BUNDLED_ASSETS = {}
+    BUNDLED_INDEX_HTML = None
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 logger = logging.getLogger("scnu-thesis-portal")
@@ -132,7 +140,23 @@ def export_pdf_route(thesis: NormalizedThesis):
     )
 
 
-def serve_spa_index() -> FileResponse:
+@app.get("/assets/{asset_path:path}", include_in_schema=False)
+def frontend_asset(asset_path: str) -> Response:
+    bundled_asset = BUNDLED_ASSETS.get(asset_path)
+    if bundled_asset:
+        return Response(
+            content=b64decode(bundled_asset["body_b64"]),
+            media_type=bundled_asset["content_type"],
+        )
+    asset_file = PUBLIC_ASSETS / asset_path
+    if asset_file.exists() and asset_file.is_file():
+        return FileResponse(asset_file)
+    raise HTTPException(status_code=404, detail="Not Found")
+
+
+def serve_spa_index() -> Response:
+    if BUNDLED_INDEX_HTML:
+        return Response(content=BUNDLED_INDEX_HTML, media_type="text/html")
     if not PUBLIC_INDEX.exists():
         raise HTTPException(status_code=404, detail="Frontend build not found. Run scripts/build_web_public.py first.")
     return FileResponse(PUBLIC_INDEX)
