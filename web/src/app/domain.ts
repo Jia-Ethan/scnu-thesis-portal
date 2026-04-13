@@ -5,12 +5,41 @@ export type InputMode = "docx" | "text";
 export type ExportKind = "tex" | "pdf";
 export type WorkspaceStep = "input" | "recognizing" | "review" | "export";
 
+export type ToastState = {
+  tone: "success" | "info";
+  title: string;
+  message: string;
+} | null;
+
 export type FriendlyError = {
   title: string;
   message: string;
   action: string;
   code?: string;
 };
+
+export type MetadataFieldRule = {
+  field: keyof MetadataFields;
+  label: string;
+  required: boolean;
+};
+
+export type ExportReadiness = {
+  canExport: boolean;
+  missingRequired: MetadataFieldRule[];
+  missingRecommended: MetadataFieldRule[];
+};
+
+export const metadataFieldRules: MetadataFieldRule[] = [
+  { field: "title", label: "论文题目", required: true },
+  { field: "author_name", label: "学生姓名", required: true },
+  { field: "student_id", label: "学号", required: true },
+  { field: "department", label: "学院 / 系别", required: true },
+  { field: "major", label: "专业", required: true },
+  { field: "class_name", label: "班级", required: false },
+  { field: "advisor_name", label: "指导老师", required: true },
+  { field: "submission_date", label: "提交日期", required: true },
+];
 
 export const emptyMetadata: MetadataFields = {
   title: "",
@@ -22,6 +51,22 @@ export const emptyMetadata: MetadataFields = {
   advisor_name: "",
   submission_date: new Date().toISOString().slice(0, 10),
 };
+
+export function validateExportReadiness(thesis: NormalizedThesis): ExportReadiness {
+  const missing = metadataFieldRules.filter(({ field }) => !String(thesis.metadata[field] ?? "").trim());
+  const missingRequired = missing.filter((rule) => rule.required);
+  const missingRecommended = missing.filter((rule) => !rule.required);
+
+  return {
+    canExport: missingRequired.length === 0,
+    missingRequired,
+    missingRecommended,
+  };
+}
+
+export function formatFieldList(fields: MetadataFieldRule[]) {
+  return fields.map((field) => field.label).join("、");
+}
 
 export function defaultThesis(health: HealthResponse | null): NormalizedThesis {
   return {
@@ -119,7 +164,7 @@ export function friendlyError(error: ApiError | null): FriendlyError | null {
     },
     FIELD_MISSING: {
       title: "导出信息不完整",
-      message: "模板导出需要若干封面字段，当前还有必填字段为空。",
+      message: error.message || "模板导出需要若干封面字段，当前还有必填字段为空。",
       action: "请补全题目、姓名、学号等基础信息后再导出。",
     },
     PDF_DISABLED: {

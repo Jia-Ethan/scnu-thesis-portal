@@ -1,4 +1,4 @@
-import type { ToastState } from "../../app/useThesisWorkspace";
+import type { ToastState } from "../../app/domain";
 
 type ToastProps = {
   toast: ToastState;
