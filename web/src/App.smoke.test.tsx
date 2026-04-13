@@ -171,7 +171,7 @@ describe("App smoke", () => {
     fireEvent.click(screen.getByRole("button", { name: "开始预检" }));
 
     expect(await screen.findByRole("dialog", { name: "导出前结构预检" })).toBeInTheDocument();
-    expect(screen.getByText("当前未发现阻塞项，可以继续导出正文审查稿。")).toBeInTheDocument();
+    expect(screen.getByText("结构基线已满足，可继续导出规范化 Word 文件。")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "确认并导出" })).toBeEnabled();
   });
 
