@@ -11,6 +11,8 @@ from xml.etree import ElementTree as ET
 from docx import Document
 from docx.oxml.ns import qn
 
+from backend.app.services.export import extract_header_title
+
 WORD_NS = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
 EXPECTED_STYLES = [
     "ThesisTitle",
@@ -205,7 +207,7 @@ def check_docx(path: Path) -> ComplianceReport:
     else:
         en_font = extract_rfonts_from_style(en_style)
         en_ok = en_font["eastAsia"] == "Times New Roman" and en_font["ascii"] == "Times New Roman" and approx(en_font["size"] or 0, 12, 0.2)
-        make_result(results, "en_abstract_style", "PASS" if en_ok else "MANUAL_REVIEW", "外文摘要样式已检查。" if en_ok else "外文摘要字体或字号不符合预期。", **en_font)
+        make_result(results, "en_abstract_style", "PASS" if en_ok else "MANUAL_REVIEW", "英文摘要样式已检查。" if en_ok else "英文摘要字体或字号不符合预期。", **en_font)
 
     with zipfile.ZipFile(path) as archive:
         names = set(archive.namelist())
@@ -221,8 +223,17 @@ def check_docx(path: Path) -> ComplianceReport:
             header_xml = archive.read(header_files[0])
             header_root = ET.fromstring(header_xml)
             header_text = "".join(header_root.itertext()).strip()
-            header_ok = bool(header_text) and thesis_title and thesis_title in header_text
-            make_result(results, "header_title", "PASS" if header_ok else "MANUAL_REVIEW", "页眉内容已检查。" if header_ok else "页眉未正确写入论文题目。", header_text=header_text, thesis_title=thesis_title)
+            expected_header_title = extract_header_title(thesis_title) if thesis_title else ""
+            header_ok = bool(header_text) and bool(expected_header_title) and header_text == expected_header_title
+            make_result(
+                results,
+                "header_title",
+                "PASS" if header_ok else "MANUAL_REVIEW",
+                "页眉内容已检查。" if header_ok else "页眉未正确写入论文主标题。",
+                header_text=header_text,
+                thesis_title=thesis_title,
+                expected_header_title=expected_header_title,
+            )
             header_props = extract_first_run_props(header_xml)
             header_font_ok = header_props.get("eastAsia") == "宋体" and approx(float(header_props.get("size") or 0), 10.5, 0.2)
             make_result(results, "header_font", "PASS" if header_font_ok else "MANUAL_REVIEW", "页眉字体已检查。" if header_font_ok else "页眉字体或字号不符合预期。", **header_props)
@@ -243,7 +254,7 @@ def check_docx(path: Path) -> ComplianceReport:
             make_result(results, "footer_font", "MANUAL_REVIEW", "无法检查页脚字体。")
 
     cn_index = find_index(paragraphs, text="中文摘要")
-    en_index = find_index(paragraphs, text="外文摘要")
+    en_index = find_index(paragraphs, text="Abstract")
     toc_index = find_index(paragraphs, text="目录")
     body_index = find_index(paragraphs, style="Heading1")
     ref_index = find_index(paragraphs, text="参考文献")

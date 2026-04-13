@@ -4,6 +4,8 @@
 
 `上传 .docx / 粘贴文本 -> 预检确认弹窗 -> 海浪导出进度 -> 自动下载 .docx 正文审查稿`
 
+当前导出顺序采用 PDF 规范口径：`中文摘要 -> 英文摘要（页标题 Abstract） -> 目录 -> 正文与注释 -> 参考文献 -> 附录 -> 致谢`
+
 ## 依赖
 
 - Python 3.12
@@ -73,6 +75,12 @@ python3 scripts/build_web_public.py
 python3 scripts/check_docx_compliance.py /path/to/exported.docx --json
 ```
 
+三份样例全链路自动化：
+
+```bash
+uv run pytest tests/compliance -q
+```
+
 可选的渲染复核：
 
 ```bash
@@ -85,3 +93,12 @@ pdfinfo /tmp/exported.pdf
 - `docs/local-validation-word.md`
 - `docs/quality-checklist-compliance.md`
 - `docs/compliance/scnu-undergraduate-export-audit-report-v1.md`
+
+## CI 对齐
+
+GitHub Actions 中的 `CI` workflow 会执行与本地相同的主护栏：
+
+- `uv run pytest tests -q`
+- `npm run test:smoke --prefix web`
+- `npm run build --prefix web`
+- `python3 scripts/build_web_public.py`

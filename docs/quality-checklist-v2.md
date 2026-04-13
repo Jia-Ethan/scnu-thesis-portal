@@ -27,6 +27,6 @@
 
 - `npm run build --prefix web`
 - `npm run test:smoke --prefix web`
-- `python3 -m pytest tests -q`
+- `uv run pytest tests -q`
 - `python3 scripts/build_web_public.py`
 - `python3 scripts/check_docx_compliance.py /path/to/exported.docx --json`

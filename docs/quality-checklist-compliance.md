@@ -9,18 +9,20 @@
 - 左侧装订线 0.5cm
 - `ThesisTitle`、`ChineseAbstractHeading`、`ChineseAbstractBody`、`EnglishAbstractHeading`、`EnglishAbstractBody`、`KeywordsLabel`、`TOCHeading`、`Heading1`–`Heading4`、`BodyText`、`ReferenceHeading`、`ReferenceEntry`、`AppendixHeading`、`AppendixItemHeading`、`AcknowledgementHeading`、`NoteText`
 - 正文 `BodyText` 为小四宋体、1.25 倍行距
-- 外文摘要 `EnglishAbstractBody` 为 `Times New Roman`
+- 英文摘要页标题为 `Abstract`
+- 英文摘要 `EnglishAbstractBody` 为 `Times New Roman`
 - 目录字段存在且覆盖 `Heading1`–`Heading4`
-- 页眉为论文题目
+- 页眉为剥离常见副标题后的论文主标题
 - 页脚存在连续阿拉伯页码字段
-- 顺序符合当前口径：中文摘要 -> 外文摘要 -> 目录 -> 正文与注释 -> 参考文献 -> 附录 -> 致谢
+- 顺序符合当前口径：中文摘要 -> `Abstract` -> 目录 -> 正文与注释 -> 参考文献 -> 附录 -> 致谢
 - 文档前部未出现疑似学校正式封面文案
+- 三份 `examples/compliance` 样例已接入 `parse -> precheck -> export -> compliance` 自动化链路
 
 ## 人工复核项
 
 - 中文摘要是否真正落在 250–300 字最佳区间
-- 外文摘要是否真正不超过 250 个实词
-- 论文题目是否包含副题且页眉是否需要人工删减
+- 英文摘要是否真正不超过 250 个实词
+- 极少数歧义性主副标题写法是否仍需人工调整页眉
 - 参考文献条目是否完全符合 GB3469-83 细节
 - 注释编号、页末注 / 篇末注是否符合规范
 - 图题、表题位置与编号是否符合规范
@@ -38,5 +40,6 @@
 ## 本轮结论
 
 - 自动可验证的硬性页面与样式项：已落地
+- `Abstract` 页标题、页眉主标题剥离、样例全链路与 CI：已落地
 - 复杂内容、注释、图表题注、参考文献细项：仍需人工复核
 - 当前结论：**主体已达标，但存在若干需人工复核项**

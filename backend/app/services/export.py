@@ -205,9 +205,80 @@ STYLE_SPECS = {
     },
 }
 
+HEADER_SUBTITLE_SEPARATOR_PATTERNS = (
+    re.compile(r"^(?P<main>.+?)：\s*(?P<sub>.+)$"),
+    re.compile(r"^(?P<main>.+?):\s+(?P<sub>.+)$"),
+    re.compile(r"^(?P<main>.+?)(?:——|--)\s*(?P<sub>.+)$"),
+    re.compile(r"^(?P<main>.+?)\s+-\s+(?P<sub>.+)$"),
+    re.compile(r"^(?P<main>.+?)\s*\|\s*(?P<sub>.+)$"),
+)
+HEADER_PARENTHESES_SUBTITLE_PATTERN = re.compile(r"^(?P<main>.+?)[（(]\s*(?P<sub>[^()（）]{1,40})\s*[）)]$")
+
 
 def normalize_text_block(text: str) -> str:
     return "\n".join(line.rstrip() for line in (text or "").strip().splitlines()).strip()
+
+
+def primary_title_line(title: str) -> str:
+    normalized = normalize_text_block(title)
+    if not normalized:
+        return "论文题目待补充"
+    for line in normalized.splitlines():
+        stripped = line.strip()
+        if stripped:
+            return stripped
+    return "论文题目待补充"
+
+
+def has_title_letters(text: str) -> bool:
+    return bool(re.search(r"[A-Za-z\u4e00-\u9fff]", text or ""))
+
+
+def looks_like_version_or_year(text: str) -> bool:
+    candidate = (text or "").strip()
+    return bool(re.fullmatch(r"\d{2,4}(?:[./-]\d{1,2}){0,2}(?:版)?", candidate))
+
+
+def clean_header_main_text(text: str) -> str:
+    return re.sub(r"\s+", " ", (text or "").strip()).rstrip("：:|-—– ")
+
+
+def can_strip_subtitle(main_title: str, subtitle: str) -> bool:
+    main = clean_header_main_text(main_title)
+    sub = re.sub(r"\s+", " ", (subtitle or "").strip())
+    if not main or not sub:
+        return False
+    if not has_title_letters(main) or not has_title_letters(sub):
+        return False
+    if len(sub) > 40:
+        return False
+    if re.fullmatch(r"[A-Z]{1,6}", sub):
+        return False
+    if looks_like_version_or_year(sub):
+        return False
+    return True
+
+
+def strip_subtitle_for_header(title: str) -> str:
+    line = primary_title_line(title)
+    for pattern in HEADER_SUBTITLE_SEPARATOR_PATTERNS:
+        match = pattern.match(line)
+        if not match:
+            continue
+        main = match.group("main")
+        subtitle = match.group("sub")
+        if can_strip_subtitle(main, subtitle):
+            return clean_header_main_text(main)
+
+    parenthetical = HEADER_PARENTHESES_SUBTITLE_PATTERN.match(line)
+    if parenthetical and can_strip_subtitle(parenthetical.group("main"), parenthetical.group("sub")):
+        return clean_header_main_text(parenthetical.group("main"))
+    return clean_header_main_text(line)
+
+
+def extract_header_title(title: str, *, max_length: int = 60) -> str:
+    clean = strip_subtitle_for_header(title) or "论文题目待补充"
+    return clean[:max_length]
 
 
 def persist_debug_copy(label: str, payload: bytes, suffix: str) -> None:
@@ -372,12 +443,6 @@ def add_field(run, instruction: str, placeholder: str | None = None) -> None:
     run._r.append(fld_end)
 
 
-def header_title_text(title: str) -> str:
-    normalized = normalize_text_block(title)
-    clean = normalized.splitlines()[0].strip() if normalized else "论文题目待补充"
-    return clean[:60]
-
-
 def configure_header_footer(document: Document, title: str) -> None:
     for section in document.sections:
         section.header.is_linked_to_previous = False
@@ -386,7 +451,7 @@ def configure_header_footer(document: Document, title: str) -> None:
         clear_block_container(section.header)
         header_paragraph = section.header.add_paragraph()
         header_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        header_run = header_paragraph.add_run(header_title_text(title))
+        header_run = header_paragraph.add_run(extract_header_title(title))
         set_run_font(header_run, east_asia="宋体", ascii_font="Times New Roman", size=FIFTH_FONT_SIZE)
 
         clear_block_container(section.footer)
@@ -446,7 +511,7 @@ def add_keywords(document: Document, keywords: list[str], *, english: bool) -> N
 
 def add_abstract_page(document: Document, thesis: NormalizedThesis, *, english: bool) -> None:
     if english:
-        add_heading_paragraph(document, "外文摘要", "EnglishAbstractHeading")
+        add_heading_paragraph(document, "Abstract", "EnglishAbstractHeading")
         add_body_paragraphs(document, thesis.abstract_en.content, style_name="EnglishAbstractBody")
         add_keywords(document, thesis.abstract_en.keywords, english=True)
         return

@@ -5,6 +5,7 @@ import io
 from fastapi.testclient import TestClient
 
 from backend.app.main import app
+from backend.app.services.export import extract_header_title
 from scripts.check_docx_compliance import check_docx
 
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "sample-thesis.docx"
@@ -14,7 +15,7 @@ def sample_payload():
     return {
         "source_type": "text",
         "metadata": {
-            "title": "结构化映射示例论文",
+            "title": "结构化映射示例论文：副标题样例",
             "author_name": "张三",
             "student_id": "2020123456",
             "department": "计算机学院",
@@ -159,8 +160,11 @@ def test_export_docx_returns_word_document(tmp_path):
     assert "word/styles.xml" in names
     document_xml = archive.read("word/document.xml").decode("utf-8")
     assert "中文摘要" in document_xml
-    assert "外文摘要" in document_xml
+    assert "Abstract" in document_xml
     assert "参考文献" in document_xml
+    header_xml = archive.read("word/header1.xml").decode("utf-8")
+    assert extract_header_title(sample_payload()["metadata"]["title"]) in header_xml
+    assert "副标题样例" not in header_xml
 
     output_path = tmp_path / "export.docx"
     output_path.write_bytes(response.content)

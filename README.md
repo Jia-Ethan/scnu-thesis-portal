@@ -29,7 +29,7 @@ flowchart LR
 
 1. 不生成学校正式封面
 2. 中文摘要
-3. 外文摘要
+3. 英文摘要（页标题 `Abstract`）
 4. 目录
 5. 正文与注释
 6. 参考文献
@@ -51,8 +51,8 @@ flowchart LR
 - 左侧装订线 0.5cm
 - 正文 `BodyText`：小四宋体，1.25 倍行距
 - 中文摘要标题 / 正文样式
-- 外文摘要正文 `Times New Roman`
-- 页眉：论文题目，五号宋体，居中
+- 英文摘要页标题 `Abstract`，正文 `Times New Roman`
+- 页眉：论文主标题，常见副标题会被剥离，五号宋体，居中
 - 页脚：连续阿拉伯页码，五号黑体加粗，居中
 - Word 可更新目录字段
 - `Heading1`–`Heading4` 多级标题与目录联动
@@ -62,7 +62,7 @@ flowchart LR
 ### 部分支持
 
 - 中文摘要字数：自动提示推荐区间，但仍建议人工复核
-- 外文摘要实词数：自动提示超长风险，但不做精确语言学计数
+- 英文摘要实词数：自动提示超长风险，但不做精确语言学计数
 - 参考文献条目：保留结构并输出统一样式，但不自动修正全部 GB3469-83 细节
 - 注释：当前提供基础“注释”章节输出，不自动保证页末注 / 篇末注完全合规
 - `.docx` 上传中的表格 / 图片 / 脚注：会做风险提示，但不承诺高保真迁移
@@ -84,7 +84,7 @@ flowchart LR
 
 - 题目缺失或明显为占位内容
 - 中文摘要缺失或明显不足
-- 外文摘要缺失
+- 英文摘要缺失
 - 正文主体缺失或正文内容过短
 - 未识别到参考文献内容
 - 模板不可用或导出失败
@@ -92,7 +92,7 @@ flowchart LR
 当前警告项包括：
 
 - 中文摘要不在 250–300 字推荐区间内
-- 外文摘要疑似超过 250 个实词
+- 英文摘要疑似超过 250 个实词
 - 中文 / 外文关键词缺失或数量异常
 - 中外文关键词未对齐
 - 封面字段未补全
@@ -115,7 +115,7 @@ python3 scripts/check_docx_compliance.py /path/to/exported.docx --json
 - 正文 / 摘要样式是否符合预期
 - 目录字段是否存在
 - 页眉 / 页脚 / 页码字段是否存在
-- 中文摘要 / 外文摘要 / 目录 / 参考文献 / 附录 / 致谢顺序
+- 中文摘要 / `Abstract` / 目录 / 参考文献 / 附录 / 致谢顺序
 - 是否错误生成疑似学校正式封面
 
 脚本结果分为：
@@ -126,7 +126,7 @@ python3 scripts/check_docx_compliance.py /path/to/exported.docx --json
 
 ## 当前实测结论
 
-已对以下三份样例完成“预检 -> 导出 -> 合规脚本检查 -> 渲染验证”链路：
+已对以下三份样例完成“解析 -> 预检 -> 导出 -> 合规脚本检查”的自动化全链路，并纳入 `pytest tests/compliance -q`：
 
 - `examples/compliance/sample-text-basic.md`
 - `examples/compliance/sample-docx-basic.docx`
@@ -190,6 +190,7 @@ PATH="$(dirname "$(uv python find 3.12)"):$PATH" vercel dev
 - `examples/compliance/`：三份合规样例输入
 - `tests/`：API、解析与合规检查测试
 - `scripts/check_docx_compliance.py`：导出稿自动合规检查脚本
+- `.github/workflows/ci.yml`：PR / 分支 CI，运行后端测试、合规样例链路、前端 smoke / build 和 `build_web_public`
 
 历史参考材料已降级归档到 `templates/upstream/latex-scnu/` 与 `docs/archive/legacy-latex-workspace/`，不属于当前产品主线目录。
 
@@ -197,8 +198,10 @@ PATH="$(dirname "$(uv python find 3.12)"):$PATH" vercel dev
 
 - `npm run build --prefix web`
 - `npm run test:smoke --prefix web`
-- `python3 -m pytest tests -q`
+- `uv run pytest tests -q`
 - `python3 scripts/build_web_public.py`
+
+GitHub Actions 中的 `CI` workflow 与上述命令保持一致，会在 PR 上给出明确通过 / 失败信号。
 
 ## 文档
 
