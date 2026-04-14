@@ -532,6 +532,9 @@ def add_toc(document: Document) -> None:
 
 def section_number(section: BodySection, counters: list[int]) -> str:
     level = min(max(section.level, 1), 4)
+    for index in range(level - 1):
+        if counters[index] == 0:
+            counters[index] = 1
     counters[level - 1] += 1
     for index in range(level, 4):
         counters[index] = 0

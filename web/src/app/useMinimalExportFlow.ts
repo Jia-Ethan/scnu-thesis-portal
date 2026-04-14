@@ -74,6 +74,9 @@ export function useMinimalExportFlow() {
   }
 
   function handleFileSelect(file: File | null) {
+    if (busy || exporting) {
+      return;
+    }
     if (rawText.trim()) {
       setInlineError({ message: "请先清空当前输入，再切换输入方式。", code: "SOURCE_CONFLICT" });
       return;

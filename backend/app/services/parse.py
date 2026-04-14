@@ -33,6 +33,11 @@ SPECIAL_TITLE_MAP = {
 }
 
 WORD_NS = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
+NUMBERED_HEADING_RE = re.compile(r"^(?P<index>\d+(?:\.\d+){0,3})[\.．]?\s+(?P<title>.+)$")
+REFERENCE_ENTRY_MARKER_RE = re.compile(r"\[[A-Z]{1,3}\]", flags=re.IGNORECASE)
+ENGLISH_KEYWORD_PREFIX_RE = re.compile(r"^(keyword|keywords|key words)\s*:", flags=re.IGNORECASE)
+CHINESE_KEYWORD_PREFIX_RE = re.compile(r"^(关键词|關鍵詞)\s*:")
+NUMBERED_HEADING_BLOCKED_KINDS = {"references", "notes", "appendix", "toc"}
 COMPLEX_FEATURE_WARNINGS = {
     "tables": "检测到表格内容，当前导出为重新排版模式，表格需人工复核。",
     "images": "检测到图片内容，当前导出不保证图题与版式位置完全保真。",
@@ -54,7 +59,35 @@ def normalize_title(value: str) -> str:
     return re.sub(r"[\s:：\-\._]+", "", text).lower()
 
 
-def detect_heading(paragraph_text: str, style_name: Optional[str]) -> Tuple[bool, str, int]:
+def looks_like_reference_entry(text: str) -> bool:
+    stripped = text.strip()
+    if not stripped:
+        return False
+    if REFERENCE_ENTRY_MARKER_RE.search(stripped):
+        return True
+    if re.search(r"\b(?:doi|vol\.|no\.|pp\.)\b", stripped, flags=re.IGNORECASE):
+        return True
+    if re.search(r"(出版社|期刊|学报|學報|论文集|論文集)", stripped):
+        return True
+    return bool(re.search(r"\b(?:19|20)\d{2}\b", stripped) and re.search(r"[，,.:：]", stripped))
+
+
+def looks_like_numbered_list_item(title: str) -> bool:
+    text = title.strip()
+    if not text:
+        return True
+    if len(text) > 60:
+        return True
+    if re.search(r"[.．。！？!?；;]$", text):
+        return True
+    if len(re.findall(r"[，,；;。！？!?]", text)) >= 2:
+        return True
+    if REFERENCE_ENTRY_MARKER_RE.search(text):
+        return True
+    return bool(re.search(r"\b(?:19|20)\d{2}\b", text) and re.search(r"[，,.:：]", text))
+
+
+def detect_heading(paragraph_text: str, style_name: Optional[str], current_kind: str = "body") -> Tuple[bool, str, int]:
     text = paragraph_text.strip()
     style = (style_name or "").strip().lower().replace(" ", "")
     if style.startswith("heading"):
@@ -67,10 +100,12 @@ def detect_heading(paragraph_text: str, style_name: Optional[str]) -> Tuple[bool
         hashes, title = markdown_match.groups()
         return True, title.strip(), len(hashes)
 
-    numbered_match = re.match(r"^(\d+(?:\.\d+){0,3})[\.．]?\s+(.+)$", text)
-    if numbered_match and len(text) <= 80:
-        index, title = numbered_match.groups()
-        return True, title.strip(), min(index.count(".") + 1, 4)
+    numbered_match = NUMBERED_HEADING_RE.match(text)
+    if numbered_match and current_kind not in NUMBERED_HEADING_BLOCKED_KINDS:
+        index = numbered_match.group("index")
+        title = numbered_match.group("title").strip()
+        if title and not looks_like_reference_entry(text) and not looks_like_numbered_list_item(title):
+            return True, title, min(index.count(".") + 1, 4)
 
     normalized = normalize_title(text)
     if normalized in SPECIAL_TITLE_MAP:
@@ -86,16 +121,12 @@ def split_keywords(text: str, english: bool) -> tuple[str, list[str]]:
     lines = [line.strip() for line in text.splitlines()]
     body_lines: list[str] = []
     keywords = ""
-    prefixes = ["keywords", "key words"] if english else ["关键词", "關鍵詞"]
+    prefix_pattern = ENGLISH_KEYWORD_PREFIX_RE if english else CHINESE_KEYWORD_PREFIX_RE
     for line in lines:
-        normalized = line.lower().replace("：", ":")
-        matched = False
-        for prefix in prefixes:
-            if normalized.startswith(prefix):
-                keywords = line.split(":", 1)[-1].split("：", 1)[-1].strip()
-                matched = True
-                break
-        if not matched:
+        normalized = line.strip().replace("：", ":")
+        if prefix_pattern.match(normalized):
+            keywords = normalized.split(":", 1)[-1].strip()
+        else:
             body_lines.append(line)
     items = [item.strip() for item in re.split(r"[，,；;、]", keywords) if item.strip()]
     return "\n".join(body_lines).strip(), items
@@ -248,7 +279,7 @@ def normalized_from_paragraphs(
                 current_lines.append("")
             continue
 
-        is_heading, heading_title, level = detect_heading(value, style_name)
+        is_heading, heading_title, level = detect_heading(value, style_name, current_kind)
         if is_heading:
             flush_current()
             current_title = heading_title

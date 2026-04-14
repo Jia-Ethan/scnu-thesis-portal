@@ -1,4 +1,4 @@
-import { useId, useLayoutEffect, useMemo, useRef } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 import type { FlowPhase } from "../../app/domain";
 import { WaveExportProgress } from "./WaveExportProgress";
 
@@ -16,7 +16,7 @@ type HomeComposerProps = {
 
 export function HomeComposer({ rawText, selectedFile, phase, exportProgress, onTextChange, onUploadTrigger, onFileSelect, onSubmit, onClear }: HomeComposerProps) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const fileInputId = useId();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const hasContent = Boolean(selectedFile || rawText.trim());
   const disabled = phase === "prechecking" || phase === "exporting";
 
@@ -55,43 +55,29 @@ export function HomeComposer({ rawText, selectedFile, phase, exportProgress, onT
           onSubmit();
         }
       }}>
-        <label
-          htmlFor={disabled ? undefined : fileInputId}
+        <button
+          type="button"
           className="composer-plus"
           aria-label="上传 .docx 文件"
-          aria-disabled={disabled ? "true" : undefined}
-          role="button"
-          tabIndex={disabled ? -1 : 0}
-          onClick={(event) => {
-            if (disabled || !onUploadTrigger()) {
-              event.preventDefault();
-            }
-          }}
-          onKeyDown={(event) => {
-            if (disabled) {
-              event.preventDefault();
-              return;
-            }
-
-            if (event.key === "Enter" || event.key === " ") {
-              if (!onUploadTrigger()) {
-                event.preventDefault();
-                return;
-              }
-              const input = document.getElementById(fileInputId) as HTMLInputElement | null;
-              input?.click();
-              event.preventDefault();
-            }
+          disabled={disabled}
+          onClick={() => {
+            if (!onUploadTrigger()) return;
+            fileInputRef.current?.click();
           }}
         >
           +
-        </label>
+        </button>
         <input
-          id={fileInputId}
+          ref={fileInputRef}
           className="composer-file-input visually-hidden-input"
           type="file"
           accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          tabIndex={-1}
+          aria-hidden="true"
           disabled={disabled}
+          onFocus={(event) => {
+            event.currentTarget.blur();
+          }}
           onChange={(event) => {
             const input = event.currentTarget;
             onFileSelect(input.files?.[0] ?? null);

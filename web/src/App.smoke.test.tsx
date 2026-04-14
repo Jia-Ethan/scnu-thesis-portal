@@ -20,14 +20,19 @@ describe("App smoke", () => {
   it("renders the minimal home shell", async () => {
     mockFetch();
 
-    render(<App />);
+    const { container } = render(<App />);
 
     expect(screen.getByRole("heading", { level: 1, name: "SC-TH" })).toBeInTheDocument();
     expect(screen.queryByText("极简论文预检与 Word 导出")).not.toBeInTheDocument();
     expect(screen.getByPlaceholderText("上传 .docx 或粘贴论文内容")).toBeInTheDocument();
     expect(screen.getByText("按 Cmd/Ctrl + Enter 开始预检")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "上传 .docx 文件" })).toBeInTheDocument();
+    const uploadButton = screen.getByRole("button", { name: "上传 .docx 文件" });
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    expect(uploadButton.tagName).toBe("BUTTON");
+    expect(uploadButton).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "开始预检" })).toBeInTheDocument();
+    expect(input.tabIndex).toBe(-1);
+    expect(input).toHaveAttribute("aria-hidden", "true");
 
     await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/health", undefined));
   });
@@ -47,11 +52,15 @@ describe("App smoke", () => {
     mockFetch();
     const { container } = render(<App />);
 
+    const uploadButton = screen.getByRole("button", { name: "上传 .docx 文件" });
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const clickSpy = vi.spyOn(input, "click");
     const file = new File(["docx"], "paper.docx", {
       type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     });
 
+    fireEvent.click(uploadButton);
+    expect(clickSpy).toHaveBeenCalledTimes(1);
     fireEvent.change(input, { target: { files: [file] } });
 
     expect(await screen.findByText("paper.docx")).toBeInTheDocument();
@@ -71,14 +80,16 @@ describe("App smoke", () => {
 
   it("shows source conflict when clicking upload after typing text", async () => {
     mockFetch();
-
-    render(<App />);
+    const { container } = render(<App />);
     fireEvent.change(screen.getByLabelText("论文正文输入框"), {
       target: { value: "已有内容" },
     });
 
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const clickSpy = vi.spyOn(input, "click");
     fireEvent.click(screen.getByRole("button", { name: "上传 .docx 文件" }));
 
+    expect(clickSpy).not.toHaveBeenCalled();
     expect(await screen.findByText("请先清空当前输入，再切换输入方式。")).toBeInTheDocument();
   });
 

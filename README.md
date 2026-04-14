@@ -38,6 +38,8 @@ flowchart LR
 
 手册与 PDF 规范在“目录是否必备”“参考文献 / 附录顺序”上存在冲突；本轮默认采用 PDF 规范口径，详见 [规范映射表](docs/scnu-undergraduate-format-spec-map.md)。
 
+首页上传入口当前只通过可见 `+` 按钮触发；视觉隐藏的 `input[type="file"]` 已移出 tab 焦点链，文本 / 文件冲突与 busy / exporting 状态都会阻止选文件。
+
 ![SC-TH 预检确认弹窗](docs/assets/sc-th-precheck.png)
 
 ![SC-TH 海浪导出态](docs/assets/sc-th-export-wave.png)
@@ -56,6 +58,8 @@ flowchart LR
 - 页脚：连续阿拉伯页码，五号黑体加粗，居中
 - Word 可更新目录字段
 - `Heading1`–`Heading4` 多级标题与目录联动
+- 首个识别到的标题即使从二级 / 三级起步，也不会再生成 `0.*` 前导零编号
+- 英文关键词前缀兼容 `Keyword:`、`Keywords:`、`Key words:`
 - 参考文献 / 附录 / 致谢顺序按当前口径输出
 - 不再伪造学校正式封面
 
@@ -64,6 +68,7 @@ flowchart LR
 - 中文摘要字数：自动提示推荐区间，但仍建议人工复核
 - 英文摘要实词数：自动提示超长风险，但不做精确语言学计数
 - 参考文献条目：保留结构并输出统一样式，但不自动修正全部 GB3469-83 细节
+- 数字编号标题识别：对参考文献、注释区和明显列表项采用保守策略；少量歧义编号短句仍建议人工复核
 - 注释：当前提供基础“注释”章节输出，不自动保证页末注 / 篇末注完全合规
 - `.docx` 上传中的表格 / 图片 / 脚注：会做风险提示，但不承诺高保真迁移
 
@@ -131,6 +136,13 @@ python3 scripts/check_docx_compliance.py /path/to/exported.docx --json
 - `examples/compliance/sample-text-basic.md`
 - `examples/compliance/sample-docx-basic.docx`
 - `examples/compliance/sample-docx-complex.docx`
+
+本轮收口已额外确认：
+
+- 上传入口不再暴露不可见键盘焦点，也不会绕过 `SOURCE_CONFLICT`
+- 编号参考文献不会再被正文标题识别规则掏空
+- 首个二 / 三 / 四级标题起步时不再生成 `0.*` 编号
+- 英文摘要关键词兼容 `Keyword:`、`Keywords:`、`Key words:`
 
 本轮结论：**主体已达标，可作为华南师范大学本科论文初稿 / 送审稿的正文排版基线，但图表题注、注释、复杂富文本迁移和参考文献细项仍需人工复核。**
 
