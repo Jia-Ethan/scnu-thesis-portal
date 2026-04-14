@@ -25,6 +25,15 @@ ENGLISH_FONT = "Times New Roman"
 HEADER_FONT = "宋体"
 FOOTER_FONT = "黑体"
 
+HEADER_SUBTITLE_SEPARATOR_PATTERNS = (
+    re.compile(r"^(?P<main>.+?)：\s*(?P<sub>.+)$"),
+    re.compile(r"^(?P<main>.+?):\s+(?P<sub>.+)$"),
+    re.compile(r"^(?P<main>.+?)(?:——|--|—)\s*(?P<sub>.+)$"),
+    re.compile(r"^(?P<main>.+?)\s+-\s+(?P<sub>.+)$"),
+    re.compile(r"^(?P<main>.+?)\s*\|\s*(?P<sub>.+)$"),
+)
+HEADER_PARENTHESES_SUBTITLE_PATTERN = re.compile(r"^(?P<main>.+?)[（(]\s*(?P<sub>[^()（）]{1,40})\s*[）)]$")
+
 
 @dataclass
 class RenderedBodySection:
@@ -41,6 +50,63 @@ class RenderPlan:
 
 def normalize_text_block(text: str) -> str:
     return "\n".join(line.rstrip() for line in (text or "").strip().splitlines()).strip()
+
+
+def primary_title_line(title: str) -> str:
+    normalized = normalize_text_block(title)
+    if not normalized:
+        return ""
+    for line in normalized.splitlines():
+        stripped = line.strip()
+        if stripped:
+            return stripped
+    return ""
+
+
+def has_title_letters(text: str) -> bool:
+    return bool(re.search(r"[A-Za-z\u4e00-\u9fff]", text or ""))
+
+
+def looks_like_version_or_year(text: str) -> bool:
+    candidate = (text or "").strip()
+    return bool(re.fullmatch(r"\d{2,4}(?:[./-]\d{1,2}){0,2}(?:版)?", candidate))
+
+
+def clean_header_main_text(text: str) -> str:
+    return re.sub(r"\s+", " ", (text or "").strip()).rstrip("：:|-—– ")
+
+
+def can_strip_subtitle(main_title: str, subtitle: str) -> bool:
+    main = clean_header_main_text(main_title)
+    sub = re.sub(r"\s+", " ", (subtitle or "").strip())
+    if not main or not sub:
+        return False
+    if not has_title_letters(main) or not has_title_letters(sub):
+        return False
+    if len(sub) > 40:
+        return False
+    if re.fullmatch(r"[A-Z]{1,6}", sub):
+        return False
+    if looks_like_version_or_year(sub):
+        return False
+    return True
+
+
+def strip_subtitle_for_header(title: str) -> str:
+    line = primary_title_line(title)
+    for pattern in HEADER_SUBTITLE_SEPARATOR_PATTERNS:
+        match = pattern.match(line)
+        if not match:
+            continue
+        main = match.group("main")
+        subtitle = match.group("sub")
+        if can_strip_subtitle(main, subtitle):
+            return clean_header_main_text(main)
+
+    parenthetical = HEADER_PARENTHESES_SUBTITLE_PATTERN.match(line)
+    if parenthetical and can_strip_subtitle(parenthetical.group("main"), parenthetical.group("sub")):
+        return clean_header_main_text(parenthetical.group("main"))
+    return clean_header_main_text(line)
 
 
 def persist_debug_copy(label: str, payload: bytes, suffix: str) -> None:
@@ -239,25 +305,25 @@ def weighted_title_length(value: str) -> float:
     return total
 
 
-def truncate_header_title(title: str) -> str:
-    main_line = (title or "").splitlines()[0].strip()
+def extract_header_title(title: str, *, max_length: int = 28) -> str:
+    main_line = strip_subtitle_for_header(title)
     if not main_line:
         return ""
-    for delimiter in ["：", ":", "——", "—"]:
-        if delimiter in main_line:
-            main_line = main_line.split(delimiter, 1)[0].strip()
-            break
-    if weighted_title_length(main_line) <= 28:
+    if weighted_title_length(main_line) <= max_length:
         return main_line
     result = ""
     current = 0.0
     for char in main_line:
         width = 0.5 if ord(char) < 128 else 1.0
-        if current + width > 28:
+        if current + width > max_length:
             break
         result += char
         current += width
     return result.strip()
+
+
+def truncate_header_title(title: str) -> str:
+    return extract_header_title(title, max_length=28)
 
 
 def strip_existing_body_prefix(title: str) -> str:
@@ -267,6 +333,17 @@ def strip_existing_body_prefix(title: str) -> str:
     return value.strip() or "正文"
 
 
+def section_number(section: BodySection, counters: list[int]) -> str:
+    level = min(max(section.level, 1), 4)
+    for index in range(level - 1):
+        if counters[index] == 0:
+            counters[index] = 1
+    counters[level - 1] += 1
+    for index in range(level, len(counters)):
+        counters[index] = 0
+    return ".".join(str(counters[index]) for index in range(level)) + "."
+
+
 def build_render_plan(thesis: NormalizedThesis) -> RenderPlan:
     header_title = truncate_header_title(thesis.cover.title)
     counters = [0, 0, 0, 0]
@@ -274,12 +351,9 @@ def build_render_plan(thesis: NormalizedThesis) -> RenderPlan:
 
     for section in thesis.body_sections:
         level = min(max(section.level, 1), 4)
-        counters[level - 1] += 1
-        for index in range(level, len(counters)):
-            counters[index] = 0
+        numbering = section_number(section, counters).rstrip(".")
         clean_title = strip_existing_body_prefix(section.title)
-        prefix = ".".join(str(counters[index]) for index in range(level))
-        display_title = f"{prefix} {clean_title}".strip()
+        display_title = f"{numbering} {clean_title}".strip()
         rendered_sections.append(RenderedBodySection(title=display_title, level=level, content=section.content))
 
     return RenderPlan(header_title=header_title, body_sections=rendered_sections)

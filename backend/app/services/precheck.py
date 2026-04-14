@@ -28,6 +28,7 @@ COVER_FIELD_LABELS = [
     ("class_name", "班级"),
     ("graduation_time", "毕业时间"),
 ]
+CN_ABSTRACT_RECOMMENDED_MIN = 300
 
 
 def compact_text(text: str) -> str:
@@ -135,6 +136,17 @@ def run_precheck(thesis: NormalizedThesis) -> PrecheckResponse:
 
     if not thesis.abstract_cn.content.strip():
         issues.append(issue("abstract-cn-missing", "ABSTRACT_CN_BLANK", "warning", "abstract_cn", "中文摘要将留白", "未识别到中文摘要，导出时会保留中文摘要章节空白区。"))
+    elif len(compact_text(thesis.abstract_cn.content)) < CN_ABSTRACT_RECOMMENDED_MIN:
+        issues.append(
+            issue(
+                "abstract-cn-length",
+                "ABSTRACT_CN_LENGTH_RECOMMENDED",
+                "warning",
+                "abstract_cn",
+                "中文摘要篇幅偏短",
+                "中文摘要已识别，但篇幅偏短，建议导出后结合学校要求人工复核。",
+            )
+        )
     if not thesis.abstract_en.content.strip():
         issues.append(issue("abstract-en-missing", "ABSTRACT_EN_BLANK", "warning", "abstract_en", "英文摘要将留白", "未识别到英文摘要，导出时会保留英文摘要章节空白区。"))
     if not thesis.abstract_cn.keywords:
@@ -162,6 +174,17 @@ def run_precheck(thesis: NormalizedThesis) -> PrecheckResponse:
                 "检测到表格、图片、脚注或其他复杂 Word 元素，结构导出可继续，但结果需人工复核。",
             )
         )
+        if thesis.source_features.table_count:
+            issues.append(
+                issue(
+                    "source-feature-tables",
+                    "SOURCE_FEATURE_TABLES",
+                    "warning",
+                    "complex_elements",
+                    "检测到表格",
+                    f"源文档中检测到 {thesis.source_features.table_count} 个表格，导出后需人工复核其版式与题注。",
+                )
+            )
     else:
         issues.append(issue("complex-elements-clear", "NO_COMPLEX_ELEMENTS", "info", "complex_elements", "复杂元素检查", "当前未检测到明显的复杂 Word 元素。"))
 
