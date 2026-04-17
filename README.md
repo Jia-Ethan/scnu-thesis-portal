@@ -2,8 +2,9 @@
 
 面向华南师范大学本科毕业论文导出场景的规范驱动 Word 导出工具。
 
-当前主线目标只有一个：
-上传 `.docx` 或粘贴论文文本后，生成一份按华南师范大学本科论文规范组织的 `.docx`，并把正式封面、前后置顺序、目录字段、页眉页脚、页码、分页和关键样式稳定写入最终文档。
+**双模式支持：**
+1. **上传模式** — 上传 `.docx` 或粘贴论文文本，生成按华师规范组织的 Word 文档
+2. **AI 生成模式** — 输入研究 idea，多 Agent 流水线（Architect → Writer → Evaluator → Refiner）生成论文初稿，自动进入导出流程
 
 > 本项目不是学校官方系统，但当前导出主线按学校规范实现，不再沿用“只生成正文审查稿”或“不生成学校正式封面”的旧口径。
 
@@ -23,9 +24,16 @@
 
 ```mermaid
 flowchart LR
-  A["上传 .docx / 粘贴文本"] --> B["统一结构识别"]
-  B --> C["预检确认"]
-  C --> D["规范驱动渲染"]
+  subgraph 上传模式
+    A1["上传 .docx / 粘贴文本"] --> B1["统一结构识别"]
+  end
+  subgraph AI生成模式
+    A2["输入研究 idea"] --> B2["多Agent流水线"]
+    B2 --> C2["论文初稿"]
+  end
+  B1 --> C1["预检确认"]
+  C2 --> C1
+  C1 --> D["规范驱动渲染"]
   D --> E["下载 .docx"]
   E --> F["合规检查 / 人工复核"]
 ```
@@ -80,13 +88,25 @@ flowchart LR
 ```bash
 cd /Users/ethan/scnu-thesis-portal
 uv sync --extra dev
+uv sync --extra story2paper  # AI 生成依赖（可选）
 npm install --prefix web
 ```
 
-启动后端：
+Story2Paper 依赖可选，不影响上传模式运行。
+
+启动后端（上传模式）：
 
 ```bash
 uv run uvicorn backend.app.main:app --reload --port 8000
+```
+
+启动后端（AI 生成模式，需同时启动两个服务）：
+
+```bash
+# 终端 1：SCNU 渲染 API
+uv run uvicorn backend.app.main:app --reload --port 8000
+# 终端 2：Story2Paper 流水线 API
+uv run uvicorn backend.story2paper.main_s2p:app --reload --port 8001
 ```
 
 启动前端：
@@ -122,7 +142,8 @@ python3 scripts/build_web_public.py
 
 ## 仓库结构
 
-- `backend/`：统一解析、预检、Word 渲染与 API
+- `backend/app/`：统一解析、预检、Word 渲染与 API
+- `backend/story2paper/`：AI 多 Agent 论文生成流水线（agents / pipeline / exporters / shared）
 - `web/`：极简输入页、预检弹窗与导出流程
 - `templates/working/sc-th-word/`：当前工作模板与正式封面资产
 - `scripts/check_docx_compliance.py`：主线 `.docx` 合规检查脚本
