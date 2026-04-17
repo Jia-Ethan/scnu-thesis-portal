@@ -62,7 +62,7 @@ class CapabilityFlags(BaseModel):
 
 
 class NormalizedThesis(BaseModel):
-    source_type: Literal["docx", "text"] = "text"
+    source_type: Literal["docx", "text", "story2paper"] = "text"
     cover: CoverFields = Field(default_factory=CoverFields)
     abstract_cn: SummarySection = Field(default_factory=SummarySection)
     abstract_en: SummarySection = Field(default_factory=SummarySection)

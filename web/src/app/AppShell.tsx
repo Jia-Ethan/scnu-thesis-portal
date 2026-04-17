@@ -18,6 +18,20 @@ export function AppShell() {
         onFileSelect={flow.handleFileSelect}
         onSubmit={flow.handlePrecheck}
         onClear={flow.clearAll}
+        sourceTab={flow.sourceTab}
+        onSourceTabChange={flow.setSourceTab}
+        aiPhase={flow.aiPhase}
+        researchPrompt={flow.researchPrompt}
+        paperId={flow.paperId}
+        currentAgent={flow.currentAgent}
+        sectionIndex={flow.sectionIndex}
+        revisionRound={flow.revisionRound}
+        aiError={flow.aiError}
+        coverFields={flow.coverFields}
+        onResearchPromptChange={flow.setResearchPrompt}
+        onCoverFieldsChange={flow.setCoverFields}
+        onAIGenerate={flow.handleAIGenerate}
+        onAIClear={flow.handleAIClear}
       />
       <PrecheckModal open={flow.previewModalOpen} precheck={flow.precheck} onCancel={flow.handleCancelPreview} onConfirm={flow.handleConfirmExport} />
     </>

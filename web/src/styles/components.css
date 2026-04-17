@@ -431,3 +431,205 @@
     border-radius: 1rem;
   }
 }
+
+/* ─── AI Generation Panel ────────────────────────────────────────────────────── */
+
+.composer-tab-bar {
+  padding: 0.6rem 1rem 0;
+}
+
+.ai-gen-panel,
+.ai-gen-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 0.5rem 1.5rem 1rem;
+}
+
+.ai-gen-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.field-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.ai-prompt-textarea {
+  min-height: 5rem;
+  resize: none;
+  overflow-y: auto;
+  font-size: 0.97rem;
+  line-height: 1.65;
+  color: var(--text-primary);
+}
+
+/* Cover fields grid */
+.cover-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.cover-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.cover-field span {
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+
+.cover-field input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 0.88rem;
+  color: var(--text-primary);
+  transition: border-color var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard);
+  backdrop-filter: blur(8px);
+}
+
+.cover-field input:focus {
+  outline: none;
+  border-color: var(--border-accent);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.cover-field input::placeholder {
+  color: var(--text-tertiary);
+  opacity: 0.7;
+}
+
+.cover-field input:disabled {
+  opacity: 0.56;
+  cursor: not-allowed;
+}
+
+/* Agent progress */
+.ai-gen-progress,
+.ai-gen-status {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-panel-soft);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-base);
+}
+
+.agent-steps {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.agent-step {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-base);
+  background: rgba(255, 255, 255, 0.5);
+  transition: all var(--motion-fast) var(--ease-standard);
+}
+
+.agent-step.active {
+  color: var(--accent-strong);
+  border-color: var(--border-accent);
+  background: rgba(126, 195, 255, 0.12);
+}
+
+.agent-step.done {
+  color: var(--text-secondary);
+  background: rgba(137, 210, 191, 0.15);
+  border-color: rgba(137, 210, 191, 0.4);
+}
+
+.agent-hint {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+
+/* Error */
+.ai-gen-error {
+  padding: 0.75rem 1rem;
+  background: var(--bg-blocking);
+  border: 1px solid rgba(228, 139, 143, 0.35);
+  border-radius: var(--radius-md);
+}
+
+.ai-gen-error p {
+  font-size: 0.85rem;
+  color: var(--text-danger);
+}
+
+/* Actions */
+.ai-gen-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.btn-primary {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(180deg, var(--accent), var(--accent-strong));
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.92rem;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(69, 152, 235, 0.3);
+  transition: transform var(--motion-fast) var(--ease-standard),
+    opacity var(--motion-fast) var(--ease-standard);
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  padding: 0.75rem 1.5rem;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.92rem;
+  border: 1px solid var(--border-base);
+  border-radius: 999px;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.btn-ghost {
+  padding: 0.75rem 1.25rem;
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.88rem;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color var(--motion-fast) var(--ease-standard);
+}
+
+.btn-ghost:hover {
+  color: var(--text-primary);
+}
+

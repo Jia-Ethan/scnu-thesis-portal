@@ -1,8 +1,12 @@
 import { useRef, useState } from "react";
 import type { FlowPhase, InlineErrorState } from "../../app/domain";
+import type { CoverFields } from "../../generated/contracts";
+import type { AIGenPhase } from "../../app/useMinimalExportFlow";
 import { HeroAmbient } from "./HeroAmbient";
 import { HomeComposer } from "./HomeComposer";
 import { InlineError } from "./InlineError";
+
+type SourceTab = "upload" | "ai";
 
 type MinimalHomeProps = {
   rawText: string;
@@ -15,6 +19,21 @@ type MinimalHomeProps = {
   onFileSelect: (file: File | null) => void;
   onSubmit: () => void;
   onClear: () => void;
+  // AI generation
+  sourceTab: SourceTab;
+  onSourceTabChange: (tab: SourceTab) => void;
+  aiPhase: AIGenPhase;
+  researchPrompt: string;
+  paperId: string | null;
+  currentAgent: string | null;
+  sectionIndex: number;
+  revisionRound: number;
+  aiError: string | null;
+  coverFields: CoverFields;
+  onResearchPromptChange: (v: string) => void;
+  onCoverFieldsChange: (f: CoverFields) => void;
+  onAIGenerate: () => void;
+  onAIClear: () => void;
 };
 
 export function MinimalHome(props: MinimalHomeProps) {
@@ -48,6 +67,20 @@ export function MinimalHome(props: MinimalHomeProps) {
           onSubmit={props.onSubmit}
           onClear={props.onClear}
           onDragActiveChange={setIsDragActive}
+          sourceTab={props.sourceTab}
+          onSourceTabChange={props.onSourceTabChange}
+          aiPhase={props.aiPhase}
+          researchPrompt={props.researchPrompt}
+          paperId={props.paperId}
+          currentAgent={props.currentAgent}
+          sectionIndex={props.sectionIndex}
+          revisionRound={props.revisionRound}
+          aiError={props.aiError}
+          coverFields={props.coverFields}
+          onResearchPromptChange={props.onResearchPromptChange}
+          onCoverFieldsChange={props.onCoverFieldsChange}
+          onAIGenerate={props.onAIGenerate}
+          onAIClear={props.onAIClear}
         />
         <InlineError message={props.error?.message ?? null} />
       </section>

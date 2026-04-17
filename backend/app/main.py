@@ -12,12 +12,13 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 from .config import ALLOWED_DOCX_CONTENT_TYPES, ALLOWED_DOCX_EXTENSIONS, APP_ENV, CORS_ALLOWED_ORIGINS, MAX_UPLOAD_SIZE_BYTES, TEMPLATE_NAME
-from .contracts import CapabilityFlags, HealthResponse, NormalizedThesis, PrecheckResponse, ServiceLimits, TextPrecheckRequest
+from .contracts import CapabilityFlags, CoverFields, HealthResponse, NormalizedThesis, PrecheckResponse, ServiceLimits, TextPrecheckRequest
 from .errors import AppError
 from .services.export import export_docx
-from .services.parse import normalize_text_input, parse_docx_file
+from .services.parse import from_story2paper_json, normalize_text_input, parse_docx_file
 from .services.precheck import run_precheck
 
 try:
@@ -116,11 +117,23 @@ async def precheck_docx(file: UploadFile = File(...)) -> PrecheckResponse:
         return run_precheck(thesis)
 
 
+class Story2PaperPrecheckRequest(BaseModel):
+    schema_data: dict
+    cover: CoverFields
+
+
 @app.post("/api/precheck/text", response_model=PrecheckResponse)
 def precheck_text(request: TextPrecheckRequest) -> PrecheckResponse:
     if not request.text.strip():
         raise AppError("CONTENT_EMPTY", "粘贴内容为空，请先输入论文正文或章节内容。", status_code=400)
     thesis = normalize_text_input(request.text, capability_flags())
+    return run_precheck(thesis)
+
+
+@app.post("/api/precheck/from-story2paper", response_model=PrecheckResponse)
+def precheck_from_story2paper(request: Story2PaperPrecheckRequest) -> PrecheckResponse:
+    """接收 Story2Paper pipeline 的 schema JSON，转换为 NormalizedThesis 后预检。"""
+    thesis = from_story2paper_json(request.schema_data, request.cover, capability_flags())
     return run_precheck(thesis)
 
 

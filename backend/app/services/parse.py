@@ -8,6 +8,8 @@ from zipfile import ZipFile
 
 from docx import Document
 
+from pydantic import BaseModel, Field
+
 from ..contracts import (
     AppendixSection,
     BodySection,
@@ -480,3 +482,101 @@ def parse_docx_file(path: Path, capabilities: CapabilityFlags) -> NormalizedThes
 def normalize_text_input(text: str, capabilities: CapabilityFlags) -> NormalizedThesis:
     raw_blocks, source_features = extract_raw_blocks_from_text(text)
     return normalized_from_raw_blocks(raw_blocks, "text", capabilities, source_features)
+
+
+# ─── Story2Paper Schema Mapper ─────────────────────────────────────────────────
+
+
+class Story2PaperSchema(BaseModel):
+    """Story2Paper 的 export_schema_json() 输出格式。"""
+    paper_id: str | None = None
+    title: str | None = None
+    abstract_zh: str | None = ""
+    abstract_en: str | None = ""
+    sections: list[dict] = Field(default_factory=list)
+    keywords: list[str] = Field(default_factory=list)
+    references: list[str] = Field(default_factory=list)
+    figures: list[dict] = Field(default_factory=list)
+    tables: list[dict] = Field(default_factory=list)
+
+
+def from_story2paper_json(
+    raw: dict,
+    cover_fields: CoverFields,
+    capabilities: CapabilityFlags,
+) -> NormalizedThesis:
+    """
+    将 Story2Paper 的 schema JSON 映射为 NormalizedThesis。
+
+    封面字段（CoverFields）由用户在 UI 层手动填写后传入，
+    其他字段从 Story2Paper pipeline 结果中提取。
+    """
+    schema = Story2PaperSchema.model_validate(raw)
+
+    # 构建正文章节
+    body_sections: list[BodySection] = []
+    for idx, sec in enumerate(schema.sections):
+        title = sec.get("title", f"第 {idx + 1} 节")
+        content = sec.get("content", "")
+        if not title.strip():
+            title = body_title_for_missing_input()
+        body_sections.append(
+            BodySection(
+                id=f"section-{idx + 1}",
+                level=1,
+                title=title.strip(),
+                content=content.strip(),
+            )
+        )
+
+    # 构建参考文献
+    references: list[ReferenceItem] = []
+    for ref_text in schema.references:
+        raw_text = " ".join((ref_text or "").strip().split())
+        references.append(
+            ReferenceItem(
+                raw_text=raw_text,
+                normalized_text=raw_text,
+                detected_type="",
+            )
+        )
+
+    # Story2Paper 生成的论文缺少摘要/致谢/附录，手动标记为缺失
+    missing_sections: list[str] = []
+    if not schema.abstract_zh:
+        missing_sections.append("abstract_cn")
+    if not schema.abstract_en:
+        missing_sections.append("abstract_en")
+    if not references:
+        missing_sections.append("references")
+    missing_sections.append("appendices")
+    missing_sections.append("acknowledgements")
+    missing_sections.append("notes")
+
+    # 警告信息
+    warnings: list[str] = []
+    if schema.figures:
+        warnings.append(f"检测到 {len(schema.figures)} 个图表，导出后需人工复核。")
+    if schema.tables:
+        warnings.append(f"检测到 {len(schema.tables)} 个表格，导出后需人工复核。")
+    warnings.append("AI 生成论文，导出后请仔细校对内容。")
+
+    return NormalizedThesis(
+        source_type="story2paper",
+        cover=cover_fields,
+        abstract_cn=SummarySection(content=(schema.abstract_zh or "").strip(), keywords=schema.keywords),
+        abstract_en=SummarySection(content=(schema.abstract_en or "").strip(), keywords=[]),
+        body_sections=body_sections,
+        references=references,
+        appendices=[],
+        acknowledgements="",
+        notes="",
+        warnings=warnings,
+        manual_review_flags=warnings.copy(),
+        missing_sections=missing_sections,
+        source_features=SourceFeatures(
+            table_count=len(schema.tables),
+            image_count=len(schema.figures),
+        ),
+        capabilities=build_capabilities(capabilities),
+    )
