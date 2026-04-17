@@ -56,6 +56,9 @@ export function MinimalHome(props: MinimalHomeProps) {
         <h1 id="sc-th-title" className="minimal-logo">
           SC-TH
         </h1>
+        <a className="minimal-workbench-link" href="#/workbench">
+          打开 Workbench
+        </a>
         <HomeComposer
           rawText={props.rawText}
           selectedFile={props.selectedFile}

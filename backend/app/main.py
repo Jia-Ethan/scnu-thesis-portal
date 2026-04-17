@@ -20,6 +20,7 @@ from .errors import AppError
 from .services.export import export_docx
 from .services.parse import from_story2paper_json, normalize_text_input, parse_docx_file
 from .services.precheck import run_precheck
+from .workbench import router as workbench_router
 
 try:
     from .frontend_bundle import ASSETS as BUNDLED_ASSETS
@@ -43,6 +44,7 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="SCNU Thesis Portal", lifespan=lifespan)
+app.include_router(workbench_router)
 
 if PUBLIC_ASSETS.exists():
     app.mount("/assets", StaticFiles(directory=PUBLIC_ASSETS), name="assets")

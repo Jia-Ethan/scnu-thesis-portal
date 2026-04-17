@@ -1,5 +1,9 @@
 import type { HealthResponse, NormalizedThesis, PrecheckResponse } from "../generated/contracts";
 
+const importMetaEnv = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env;
+const API_BASE = (importMetaEnv?.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
+const STORY2PAPER_BASE = importMetaEnv?.VITE_STORY2PAPER_URL ?? "http://localhost:8000";
+
 export type ApiErrorPayload = {
   error_code?: string;
   error_message?: string;
@@ -30,7 +34,7 @@ async function readError(response: Response): Promise<ApiError> {
 async function jsonRequest<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(input, init);
+    response = await fetch(buildApiUrl(input), init);
   } catch (error) {
     throw new ApiError(error instanceof Error ? error.message : "服务暂时不可用", "NETWORK_ERROR");
   }
@@ -45,7 +49,7 @@ async function jsonRequest<T>(input: RequestInfo | URL, init?: RequestInit): Pro
 async function blobRequest(input: RequestInfo | URL, init?: RequestInit): Promise<Blob> {
   let response: Response;
   try {
-    response = await fetch(input, init);
+    response = await fetch(buildApiUrl(input), init);
   } catch (error) {
     throw new ApiError(error instanceof Error ? error.message : "服务暂时不可用", "NETWORK_ERROR");
   }
@@ -55,6 +59,11 @@ async function blobRequest(input: RequestInfo | URL, init?: RequestInit): Promis
   }
 
   return response.blob();
+}
+
+function buildApiUrl(input: RequestInfo | URL): RequestInfo | URL {
+  if (!API_BASE || typeof input !== "string" || !input.startsWith("/")) return input;
+  return `${API_BASE}${input}`;
 }
 
 export function getHealth() {
@@ -124,8 +133,6 @@ export interface Story2PaperWSEvent {
   final_output?: boolean;
 }
 
-const STORY2PAPER_BASE = import.meta.env.VITE_STORY2PAPER_URL ?? "http://localhost:8000";
-
 export async function story2paperGenerate(researchPrompt: string): Promise<Story2PaperGenerateResponse> {
   const response = await fetch(`${STORY2PAPER_BASE}/generate`, {
     method: "POST",
@@ -159,4 +166,150 @@ export function precheckFromStory2Paper(schemaData: object, cover: import("../ge
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ schema_data: schemaData, cover }),
   });
+}
+
+// ─── Workbench API ───────────────────────────────────────────────────────────
+
+export interface ThesisProject {
+  id: string;
+  title: string;
+  status: string;
+  current_version_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectFileRecord {
+  id: string;
+  project_id: string;
+  type: string;
+  filename: string;
+  content_type: string;
+  size: number;
+  sha256: string;
+  storage_key: string;
+  parser: string;
+  source_label: string;
+  created_at: string;
+}
+
+export interface WorkbenchJob {
+  id: string;
+  project_id: string | null;
+  kind: string;
+  status: string;
+  current_agent: string | null;
+  result: Record<string, unknown>;
+}
+
+export interface ThesisVersionRecord {
+  id: string;
+  project_id: string;
+  parent_version_id: string | null;
+  label: string;
+  thesis: NormalizedThesis;
+  created_by: string;
+  created_at: string;
+}
+
+export interface ProposalRecord {
+  id: string;
+  project_id: string;
+  version_id: string | null;
+  target_block_id: string | null;
+  operation: string;
+  before: string;
+  after: string;
+  reason: string;
+  risk: string;
+  source_refs: unknown[];
+  affects_export: boolean;
+  status: string;
+  created_at: string;
+}
+
+export interface ExportRecord {
+  id: string;
+  project_id: string;
+  version_id: string;
+  format: string;
+  status: string;
+  storage_key: string | null;
+  filename: string;
+  summary: Record<string, unknown>;
+  created_at: string;
+}
+
+export function createProject(title: string) {
+  return jsonRequest<ThesisProject>("/api/projects", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title }),
+  });
+}
+
+export function listProjects() {
+  return jsonRequest<ThesisProject[]>("/api/projects");
+}
+
+export function uploadProjectFile(projectId: string, file: File, fileType = "docx") {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("file_type", fileType);
+  form.append("source_label", "用户上传");
+  return jsonRequest<ProjectFileRecord>(`/api/projects/${projectId}/files`, {
+    method: "POST",
+    body: form,
+  });
+}
+
+export function listProjectFiles(projectId: string) {
+  return jsonRequest<ProjectFileRecord[]>(`/api/projects/${projectId}/files`);
+}
+
+export function createParseJob(projectId: string, fileId: string) {
+  return jsonRequest<WorkbenchJob>(`/api/projects/${projectId}/parse-jobs`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ file_id: fileId }),
+  });
+}
+
+export function getJobEvents(jobId: string) {
+  return jsonRequest<Array<{ id: string; type: string; payload: Record<string, unknown>; created_at: string }>>(`/api/jobs/${jobId}/events`);
+}
+
+export function listVersions(projectId: string) {
+  return jsonRequest<ThesisVersionRecord[]>(`/api/projects/${projectId}/versions`);
+}
+
+export function listProposals(projectId: string) {
+  return jsonRequest<ProposalRecord[]>(`/api/projects/${projectId}/proposals`);
+}
+
+export function decideProposal(proposalId: string, decision: "accept" | "reject" | "stash") {
+  return jsonRequest<{ proposal_id: string; decision: string; resulting_version_id: string | null }>(`/api/proposals/${proposalId}/${decision}`, {
+    method: "POST",
+  });
+}
+
+export function createProjectExport(projectId: string, format: "docx" | "pdf" | "markdown" | "integrity_report") {
+  return jsonRequest<ExportRecord>(`/api/projects/${projectId}/exports`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ format }),
+  });
+}
+
+export function listProjectExports(projectId: string) {
+  return jsonRequest<ExportRecord[]>(`/api/projects/${projectId}/exports`);
+}
+
+export function getProviders() {
+  return jsonRequest<{ providers: Array<{ id: string; name: string; remote: boolean }>; keys_exposed: boolean }>("/api/providers");
+}
+
+export function exportDownloadUrl(exportId: string) {
+  const path = `/api/exports/${exportId}/download`;
+  return typeof buildApiUrl(path) === "string" ? (buildApiUrl(path) as string) : path;
 }

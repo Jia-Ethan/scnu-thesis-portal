@@ -62,6 +62,10 @@ describe("App business flow", () => {
                 block: "body",
                 title: "正文主体不足",
                 message: "未识别到足够的正文内容，当前无法生成可用的论文主文。",
+                block_id: null,
+                source_span: null,
+                rule_source_id: null,
+                suggested_action: null,
               },
             ],
             preview_blocks: samplePrecheck().preview_blocks.map((block) =>

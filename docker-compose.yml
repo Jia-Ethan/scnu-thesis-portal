@@ -1,0 +1,78 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: scnu
+      POSTGRES_PASSWORD: scnu-local
+      POSTGRES_DB: scnu_thesis
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: scnu
+      MINIO_ROOT_PASSWORD: scnu-local-minio
+    volumes:
+      - minio-data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    environment:
+      APP_ENV: production
+      SCNU_DATABASE_URL: postgresql+psycopg://scnu:scnu-local@postgres:5432/scnu_thesis
+      SCNU_STORAGE_DIR: /data/storage
+      CORS_ALLOWED_ORIGINS: http://localhost:5173
+    volumes:
+      - app-storage:/data/storage
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+      - minio
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    command: ["uv", "run", "python", "-m", "backend.app.worker"]
+    environment:
+      APP_ENV: production
+      SCNU_DATABASE_URL: postgresql+psycopg://scnu:scnu-local@postgres:5432/scnu_thesis
+      SCNU_STORAGE_DIR: /data/storage
+    volumes:
+      - app-storage:/data/storage
+    depends_on:
+      - postgres
+      - redis
+      - minio
+
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+
+volumes:
+  postgres-data:
+  minio-data:
+  app-storage:

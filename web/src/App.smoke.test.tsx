@@ -31,6 +31,9 @@ describe("App smoke", () => {
     expect(uploadButton.tagName).toBe("BUTTON");
     expect(uploadButton).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "开始预检" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "打开 Workbench" })).toBeInTheDocument();
+    expect(screen.queryByText("生成论文")).not.toBeInTheDocument();
+    expect(screen.queryByText("AI 生成")).not.toBeInTheDocument();
     expect(input.tabIndex).toBe(-1);
     expect(input).toHaveAttribute("aria-hidden", "true");
 

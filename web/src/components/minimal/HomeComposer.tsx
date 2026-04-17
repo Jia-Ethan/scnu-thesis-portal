@@ -119,7 +119,6 @@ export function HomeComposer({
           onChange={onSourceTabChange as (v: string) => void}
           options={[
             { value: "upload", label: "上传文档" },
-            { value: "ai", label: "AI 生成" },
           ]}
         />
       </div>
@@ -456,7 +455,7 @@ function AIGenPanel({
             disabled={!researchPrompt.trim()}
             onClick={onGenerate}
           >
-            生成论文
+          生成建议
           </button>
         )}
         {(aiPhase === "done" || aiPhase === "error") && (

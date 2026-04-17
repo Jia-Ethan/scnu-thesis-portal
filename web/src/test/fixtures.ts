@@ -23,6 +23,8 @@ export const healthPayload: HealthResponse = {
 
 export function sampleThesis(overrides: ThesisFixtureOverrides = {}): NormalizedThesis {
   const base: NormalizedThesis = {
+    schema_version: "2",
+    revision_id: null,
     source_type: "text",
     cover: {
       title: "结构化映射示例论文",
@@ -78,6 +80,12 @@ export function sampleThesis(overrides: ThesisFixtureOverrides = {}): Normalized
       rich_run_count: 0,
     },
     capabilities: healthPayload.capabilities,
+    blocks: [],
+    source_spans: [],
+    provenance: [],
+    confidence: 1,
+    comments: [],
+    format_risks: [],
   };
 
   return {
@@ -111,6 +119,10 @@ export function samplePrecheck(overrides: Partial<PrecheckResponse> = {}): Prech
         block: "cover",
         title: "封面字段将留白",
         message: "以下封面字段未识别，将按学校格式保留下划线或留白：班级。",
+        block_id: null,
+        source_span: null,
+        rule_source_id: null,
+        suggested_action: null,
       },
       {
         id: "docx-export-profile",
@@ -119,6 +131,10 @@ export function samplePrecheck(overrides: Partial<PrecheckResponse> = {}): Prech
         block: "cover",
         title: "导出主线",
         message: "导出将按“学校规范 PDF > 学生手册补充 > main.pdf > 旧实现”的仲裁规则生成本科论文 Word 文件。",
+        block_id: null,
+        source_span: null,
+        rule_source_id: null,
+        suggested_action: null,
       },
       {
         id: "body-section-count",
@@ -127,6 +143,10 @@ export function samplePrecheck(overrides: Partial<PrecheckResponse> = {}): Prech
         block: "body",
         title: "章节识别概览",
         message: "当前识别到 2 个正文章节块，将固定生成目录、分节和页码。",
+        block_id: null,
+        source_span: null,
+        rule_source_id: null,
+        suggested_action: null,
       },
     ],
     preview_blocks: [

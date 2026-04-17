@@ -2,9 +2,11 @@
 
 面向华南师范大学本科毕业论文导出场景的规范驱动 Word 导出工具。
 
-**双模式支持：**
-1. **上传模式** — 上传 `.docx` 或粘贴论文文本，生成按华师规范组织的 Word 文档
-2. **AI 生成模式** — 输入研究 idea，多 Agent 流水线（Architect → Writer → Evaluator → Refiner）生成论文初稿，自动进入导出流程
+**当前主线：**
+1. **快速导出入口** — 上传 `.docx` 或粘贴论文文本，生成按华师规范组织的 Word 文档
+2. **Workbench v1 骨架** — 项目空间、文件库、版本、导出记录、Issue Ledger、Proposal 队列和可追溯 Agent 事件
+
+Story2Paper 旧流水线已降级为实验参考，不再作为主工作流入口；任何 AI 候选内容必须进入建议队列，并由用户确认后才可能进入导出版本。
 
 > 本项目不是学校官方系统，但当前导出主线按学校规范实现，不再沿用“只生成正文审查稿”或“不生成学校正式封面”的旧口径。
 
@@ -27,9 +29,9 @@ flowchart LR
   subgraph 上传模式
     A1["上传 .docx / 粘贴文本"] --> B1["统一结构识别"]
   end
-  subgraph AI生成模式
-    A2["输入研究 idea"] --> B2["多Agent流水线"]
-    B2 --> C2["论文初稿"]
+  subgraph Workbench
+    A2["项目文件库"] --> B2["解析 / 审查 / 建议队列"]
+    B2 --> C2["用户确认后的版本"]
   end
   B1 --> C1["预检确认"]
   C2 --> C1
@@ -88,11 +90,11 @@ flowchart LR
 ```bash
 cd /Users/ethan/scnu-thesis-portal
 uv sync --extra dev
-uv sync --extra story2paper  # AI 生成依赖（可选）
+uv sync --extra story2paper  # Story2Paper 实验依赖（可选）
 npm install --prefix web
 ```
 
-Story2Paper 依赖可选，不影响上传模式运行。
+Story2Paper 依赖可选，不进入默认论文导出主线。
 
 启动后端（上传模式）：
 
@@ -100,7 +102,7 @@ Story2Paper 依赖可选，不影响上传模式运行。
 uv run uvicorn backend.app.main:app --reload --port 8000
 ```
 
-启动后端（AI 生成模式，需同时启动两个服务）：
+启动 Story2Paper 实验服务（可选，不进入默认主线）：
 
 ```bash
 # 终端 1：SCNU 渲染 API

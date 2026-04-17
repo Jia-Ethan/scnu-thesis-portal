@@ -513,11 +513,11 @@ def from_story2paper_json(
     """
     schema = Story2PaperSchema.model_validate(raw)
 
-    # 构建正文章节
+    # Story2Paper 旧流水线可能包含完整正文。Workbench v1 不把这些内容
+    # 直接写入可导出版本，只保留章节标题作为结构建议。
     body_sections: list[BodySection] = []
     for idx, sec in enumerate(schema.sections):
         title = sec.get("title", f"第 {idx + 1} 节")
-        content = sec.get("content", "")
         if not title.strip():
             title = body_title_for_missing_input()
         body_sections.append(
@@ -525,7 +525,7 @@ def from_story2paper_json(
                 id=f"section-{idx + 1}",
                 level=1,
                 title=title.strip(),
-                content=content.strip(),
+                content="",
             )
         )
 
@@ -559,7 +559,7 @@ def from_story2paper_json(
         warnings.append(f"检测到 {len(schema.figures)} 个图表，导出后需人工复核。")
     if schema.tables:
         warnings.append(f"检测到 {len(schema.tables)} 个表格，导出后需人工复核。")
-    warnings.append("AI 生成论文，导出后请仔细校对内容。")
+    warnings.append("Story2Paper 实验结果仅作为结构建议，未确认正文不会进入导出版本。")
 
     return NormalizedThesis(
         source_type="story2paper",

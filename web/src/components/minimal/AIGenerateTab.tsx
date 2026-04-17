@@ -26,7 +26,7 @@ type AIGenerateTabProps = {
 
 const AGENT_LABELS: Record<string, string> = {
   architect: "架构师 · 构建大纲",
-  writer: "写作 Agent · 撰写章节",
+  writer: "建议 Agent · 生成候选",
   evaluator: "评估 Agent · 审核质量",
   refiner: "精修 Agent · 优化内容",
   done: "生成完成",
@@ -116,7 +116,7 @@ export function AIGenerateTab({
             <span>论文题目</span>
             <input
               type="text"
-              placeholder="（自动从 AI 生成结果填充）"
+              placeholder="（可从辅助建议结果填充）"
               value={coverFields.title}
               onChange={(e) => updateCover("title", e.target.value)}
               disabled={isBusy}
@@ -235,7 +235,7 @@ export function AIGenerateTab({
             disabled={!state.researchPrompt.trim() || isBusy}
             onClick={onGenerate}
           >
-            生成论文
+            生成建议
           </button>
         )}
         {state.phase === "generating" && (
