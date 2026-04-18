@@ -38,11 +38,11 @@
   position: relative;
   z-index: 1;
   color: var(--text-primary);
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
   margin: 0;
-  font-size: clamp(2.4rem, 7vw, 3.15rem);
+  font-size: 3.4rem;
   font-weight: 780;
-  line-height: 0.92;
+  line-height: 1.05;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.75);
 }
 
@@ -192,7 +192,7 @@
   }
 
   .minimal-logo {
-    font-size: clamp(2.15rem, 12vw, 2.75rem);
+    font-size: 2.65rem;
   }
 
   .hero-ambient {
@@ -233,7 +233,7 @@
   }
 
   .minimal-logo {
-    font-size: clamp(2rem, 12vw, 2.4rem);
+    font-size: 2.15rem;
   }
 
   .composer-shell,

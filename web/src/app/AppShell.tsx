@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { MinimalHome } from "../components/minimal/MinimalHome";
 import { PrecheckModal } from "../components/minimal/PrecheckModal";
 import { WorkbenchApp } from "../workbench/WorkbenchApp";
+import { WorkbenchDemo } from "../workbench/WorkbenchDemo";
 import { useMinimalExportFlow } from "./useMinimalExportFlow";
 
 export function AppShell() {
   const [route, setRoute] = useState(() => window.location.hash || "#/");
-  const flow = useMinimalExportFlow();
 
   useEffect(() => {
     const handler = () => setRoute(window.location.hash || "#/");
@@ -17,6 +17,16 @@ export function AppShell() {
   if (route === "#/workbench") {
     return <WorkbenchApp />;
   }
+
+  if (route === "#/workbench-demo") {
+    return <WorkbenchDemo />;
+  }
+
+  return <HomeRoute />;
+}
+
+function HomeRoute() {
+  const flow = useMinimalExportFlow();
 
   return (
     <>

@@ -1,6 +1,6 @@
 .button {
   border: 0;
-  border-radius: 10px;
+  border-radius: 8px;
   transition:
     transform var(--motion-fast) var(--ease-standard),
     opacity var(--motion-fast) var(--ease-standard),
@@ -30,7 +30,7 @@
 
 .composer {
   border: 1px solid var(--border-base);
-  border-radius: 1.7rem;
+  border-radius: 8px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(249, 252, 255, 0.82)),
     rgba(255, 255, 255, 0.64);
@@ -65,7 +65,7 @@
   display: inline-grid;
   place-items: center;
   border: 1px solid rgba(142, 170, 200, 0.18);
-  border-radius: 999px;
+  border-radius: 8px;
   cursor: pointer;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.7),
@@ -632,4 +632,3 @@
 .btn-ghost:hover {
   color: var(--text-primary);
 }
-
