@@ -2,51 +2,46 @@
   color-scheme: light;
   --font-sans:
     "SF Pro Display",
+    "SF Pro Text",
     "Inter",
     "PingFang SC",
     "Hiragino Sans GB",
     "Microsoft YaHei",
     system-ui,
     sans-serif;
-  --font-serif:
-    "Source Han Serif SC",
-    "Noto Serif SC",
-    "Songti SC",
-    "STSong",
-    serif;
   font-family: var(--font-sans);
-  --bg-page: #f3f5f9;
-  --bg-page-deep: #e8edf4;
+  --bg-page: #f2f4f8;
+  --bg-page-deep: #ebeff5;
   --bg-panel: rgba(255, 255, 255, 0.94);
   --bg-panel-strong: #ffffff;
-  --bg-panel-soft: #f7f9fc;
-  --bg-panel-overlay: rgba(252, 251, 248, 0.98);
+  --bg-panel-soft: #f7f8fb;
+  --bg-panel-overlay: rgba(252, 252, 253, 0.98);
   --bg-blocking: #fff0f1;
-  --bg-warning: #fff4df;
+  --bg-warning: #fff7eb;
   --bg-ok: #ebf5ef;
-  --border-base: rgba(120, 137, 162, 0.26);
-  --border-drag: rgba(63, 103, 152, 0.52);
-  --border-strong: rgba(104, 126, 156, 0.44);
-  --border-accent: rgba(36, 76, 125, 0.42);
-  --text-primary: #172033;
-  --text-secondary: #44526a;
-  --text-tertiary: #6c7a90;
+  --border-base: rgba(15, 23, 42, 0.08);
+  --border-drag: rgba(10, 100, 232, 0.24);
+  --border-strong: rgba(15, 23, 42, 0.16);
+  --border-accent: rgba(10, 100, 232, 0.18);
+  --text-primary: #0f1728;
+  --text-secondary: #4b5565;
+  --text-tertiary: #7d8695;
   --text-danger: #a95359;
   --text-warning: #9a6a12;
-  --text-info: #244c7d;
-  --accent: #244c7d;
-  --accent-strong: #17375e;
-  --accent-deep: #102a49;
+  --text-info: #0a64e8;
+  --accent: #0a64e8;
+  --accent-strong: #0453c7;
+  --accent-deep: #003a96;
   --danger: #c97379;
   --warning: #d2a244;
   --success: #5e8c72;
-  --shadow-soft: 0 18px 40px rgba(93, 111, 138, 0.08);
-  --shadow-panel: 0 22px 48px rgba(80, 101, 128, 0.1);
-  --shadow-modal: 0 28px 64px rgba(58, 78, 108, 0.16);
-  --focus-ring: rgba(36, 76, 125, 0.16);
-  --radius-sm: 10px;
-  --radius-md: 16px;
-  --radius-lg: 24px;
+  --shadow-soft: 0 20px 42px rgba(15, 23, 42, 0.06);
+  --shadow-panel: 0 28px 60px rgba(15, 23, 42, 0.08);
+  --shadow-modal: 0 40px 82px rgba(15, 23, 42, 0.12);
+  --focus-ring: rgba(10, 100, 232, 0.12);
+  --radius-sm: 12px;
+  --radius-md: 18px;
+  --radius-lg: 28px;
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;

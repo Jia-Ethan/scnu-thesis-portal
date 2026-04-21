@@ -12,9 +12,9 @@ body {
   margin: 0;
   font-family: var(--font-sans);
   background:
-    radial-gradient(circle at 18% 12%, rgba(198, 216, 239, 0.48), transparent 28%),
-    radial-gradient(circle at 86% 8%, rgba(255, 252, 246, 0.88), transparent 26%),
-    linear-gradient(180deg, #f8fafc 0%, var(--bg-page) 48%, var(--bg-page-deep) 100%);
+    radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.96), transparent 30%),
+    radial-gradient(circle at 84% 10%, rgba(214, 225, 245, 0.48), transparent 26%),
+    linear-gradient(180deg, #fbfcfe 0%, var(--bg-page) 50%, var(--bg-page-deep) 100%);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;

@@ -22,11 +22,7 @@ describe("App business flow", () => {
     vi.restoreAllMocks();
   });
 
-  function acceptPrivacy() {
-    fireEvent.click(screen.getByRole("checkbox", { name: /我确认已阅读隐私说明/ }));
-  }
-
-  it("shows a backend precheck error below the composer", async () => {
+  it("shows a backend precheck error below the formatter surface", async () => {
     mockFetch((input) => {
       const url = String(input);
       if (url.includes("/api/public/precheck/text")) {
@@ -39,13 +35,12 @@ describe("App business flow", () => {
     fireEvent.change(screen.getByLabelText("论文正文输入框"), {
       target: { value: "不完整内容" },
     });
-    acceptPrivacy();
     fireEvent.click(screen.getByRole("button", { name: "开始预检" }));
 
     expect(await screen.findByText("无法完成结构识别，请调整输入内容后重试。")).toBeInTheDocument();
   });
 
-  it("keeps confirm button disabled when blocking issues remain", async () => {
+  it("keeps export enabled even when blocking issues remain", async () => {
     mockFetch((input) => {
       const url = String(input);
       if (url.includes("/api/public/precheck/text")) {
@@ -66,7 +61,7 @@ describe("App business flow", () => {
                 severity: "blocking",
                 block: "body",
                 title: "正文主体不足",
-                message: "未识别到足够的正文内容，当前无法生成可用的论文主文。",
+                message: "正文结构仍需人工留意。",
                 block_id: null,
                 source_span: null,
                 rule_source_id: null,
@@ -74,7 +69,7 @@ describe("App business flow", () => {
               },
             ],
             preview_blocks: samplePrecheck().preview_blocks.map((block) =>
-              block.key === "body" ? { ...block, status: "blocking", preview: "正文内容不足", issue_ids: ["body-missing"] } : block,
+              block.key === "body" ? { ...block, status: "blocking", preview: "正文结构仍需人工留意。", issue_ids: ["body-missing"] } : block,
             ),
           }),
         );
@@ -86,10 +81,10 @@ describe("App business flow", () => {
     fireEvent.change(screen.getByLabelText("论文正文输入框"), {
       target: { value: "摘要\n内容不足" },
     });
-    acceptPrivacy();
     fireEvent.click(screen.getByRole("button", { name: "开始预检" }));
 
-    expect(await screen.findByRole("button", { name: "仍有 2 项未满足" })).toBeDisabled();
+    expect(await screen.findByRole("button", { name: "导出 Word" })).toBeEnabled();
+    expect(screen.getByText("正文结构仍需人工留意。")).toBeInTheDocument();
   });
 
   it("exports docx and resets after success", async () => {
@@ -121,14 +116,13 @@ describe("App business flow", () => {
     fireEvent.change(screen.getByLabelText("论文正文输入框"), {
       target: { value: "结构化映射示例论文\n\n摘要\n这是满足长度要求的摘要内容。".repeat(8) },
     });
-    acceptPrivacy();
     fireEvent.click(screen.getByRole("button", { name: "开始预检" }));
-    await screen.findByRole("dialog", { name: "导出前结构预检" });
+    await screen.findByRole("dialog", { name: "检查完成" });
 
-    fireEvent.click(screen.getByRole("button", { name: "确认并导出" }));
+    fireEvent.click(screen.getByRole("button", { name: "导出 Word" }));
 
     expect(await screen.findByText(/正在生成 Word 文件/)).toBeInTheDocument();
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "导出前结构预检" })).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "检查完成" })).not.toBeInTheDocument());
     await waitFor(() => expect(screen.getByLabelText("论文正文输入框")).toHaveValue(""));
 
     expect(jobPollCount).toBeGreaterThan(0);
@@ -155,7 +149,6 @@ describe("App business flow", () => {
     fireEvent.change(screen.getByLabelText("论文正文输入框"), {
       target: { value: "结构化映射示例论文\n\n摘要\n这是满足长度要求的摘要内容。".repeat(8) },
     });
-    acceptPrivacy();
     fireEvent.click(screen.getByRole("button", { name: "开始预检" }));
 
     const uploadButton = screen.getByRole("button", { name: "上传 .docx 文件" });
@@ -167,7 +160,7 @@ describe("App business flow", () => {
     expect(clickSpy).not.toHaveBeenCalled();
 
     precheckDeferred.resolve(await jsonResponse(samplePrecheck()));
-    expect(await screen.findByRole("dialog", { name: "导出前结构预检" })).toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: "检查完成" })).toBeInTheDocument();
   });
 
   it("keeps upload disabled while export is in flight", async () => {
@@ -197,10 +190,9 @@ describe("App business flow", () => {
     fireEvent.change(screen.getByLabelText("论文正文输入框"), {
       target: { value: "结构化映射示例论文\n\n摘要\n这是满足长度要求的摘要内容。".repeat(8) },
     });
-    acceptPrivacy();
     fireEvent.click(screen.getByRole("button", { name: "开始预检" }));
-    await screen.findByRole("dialog", { name: "导出前结构预检" });
-    fireEvent.click(screen.getByRole("button", { name: "确认并导出" }));
+    await screen.findByRole("dialog", { name: "检查完成" });
+    fireEvent.click(screen.getByRole("button", { name: "导出 Word" }));
 
     const uploadButton = screen.getByRole("button", { name: "上传 .docx 文件" });
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
@@ -246,10 +238,9 @@ describe("App business flow", () => {
     fireEvent.change(screen.getByLabelText("论文正文输入框"), {
       target: { value: "结构化映射示例论文\n\n摘要\n这是满足长度要求的摘要内容。".repeat(8) },
     });
-    acceptPrivacy();
     fireEvent.click(screen.getByRole("button", { name: "开始预检" }));
-    await screen.findByRole("dialog", { name: "导出前结构预检" });
-    fireEvent.click(screen.getByRole("button", { name: "确认并导出" }));
+    await screen.findByRole("dialog", { name: "检查完成" });
+    fireEvent.click(screen.getByRole("button", { name: "导出 Word" }));
 
     fireEvent.click(await screen.findByRole("button", { name: "取消导出" }));
     expect(await screen.findByText("导出已取消，可重新导出。")).toBeInTheDocument();

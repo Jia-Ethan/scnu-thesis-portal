@@ -27,8 +27,6 @@ export function useMinimalExportFlow() {
   const [exportProgress, setExportProgress] = useState(0);
   const [exportMessage, setExportMessage] = useState("");
   const [inlineError, setInlineError] = useState<InlineErrorState | null>(null);
-  const [privacyAccepted, setPrivacyAccepted] = useState(false);
-  const [turnstileToken, setTurnstileToken] = useState("");
   const exportJobIdRef = useRef<string | null>(null);
   const cancelRequestedRef = useRef(false);
 
@@ -55,8 +53,6 @@ export function useMinimalExportFlow() {
     setExportProgress(0);
     setExportMessage("");
     setInlineError(null);
-    setPrivacyAccepted(false);
-    setTurnstileToken("");
     exportJobIdRef.current = null;
     cancelRequestedRef.current = false;
   }
@@ -114,14 +110,10 @@ export function useMinimalExportFlow() {
       setInlineError(validation);
       return;
     }
-    if (!privacyAccepted) {
-      setInlineError({ message: "请先确认隐私说明后再继续。", code: "PRIVACY_CONFIRMATION_REQUIRED" });
-      return;
-    }
 
     setBusy(true);
     try {
-      const response = selectedFile ? await publicPrecheckDocx(selectedFile, privacyAccepted, turnstileToken) : await publicPrecheckText(rawText, privacyAccepted, turnstileToken);
+      const response = selectedFile ? await publicPrecheckDocx(selectedFile, true, "") : await publicPrecheckText(rawText, true, "");
       setPrecheck(response);
       setPreviewModalOpen(true);
     } catch (error) {
@@ -145,8 +137,8 @@ export function useMinimalExportFlow() {
   }
 
   async function handleConfirmExport() {
-    if (!precheck?.summary.can_confirm) {
-      setInlineError({ message: precheck?.summary.blocking_message || "预检仍存在阻塞项，暂时无法导出。", code: "FIELD_MISSING" });
+    if (!precheck) {
+      setInlineError({ message: "请先完成预检后再导出。", code: "FIELD_MISSING" });
       return;
     }
 
@@ -236,10 +228,6 @@ export function useMinimalExportFlow() {
     exportMessage,
     inlineError,
     canRetryExport,
-    privacyAccepted,
-    setPrivacyAccepted,
-    turnstileToken,
-    setTurnstileToken,
     clearAll,
     handleFileSelect,
     handleUploadTrigger,
