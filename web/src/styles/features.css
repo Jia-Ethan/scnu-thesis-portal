@@ -1,21 +1,21 @@
 .formatter-page {
   min-height: 100vh;
   background:
-    radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.88), transparent 26%),
-    radial-gradient(circle at 82% 10%, rgba(211, 224, 245, 0.5), transparent 24%),
-    linear-gradient(180deg, #f9fafc 0%, #f2f4f8 100%);
+    radial-gradient(circle at 20% 10%, rgba(255, 255, 255, 0.96), transparent 28%),
+    radial-gradient(circle at 78% 12%, rgba(226, 234, 247, 0.42), transparent 24%),
+    linear-gradient(180deg, #fbfcfe 0%, #f3f5f8 58%, #eef1f6 100%);
 }
 
 .formatter-hero {
   position: relative;
   isolation: isolate;
   min-height: 100vh;
-  width: min(100%, 1100px);
+  width: min(100%, 1160px);
   margin: 0 auto;
   display: grid;
   align-content: center;
-  gap: clamp(2rem, 4vw, 3.4rem);
-  padding: clamp(3.2rem, 8vw, 7rem) 1.5rem;
+  gap: clamp(2.4rem, 5vw, 4.4rem);
+  padding: clamp(3.8rem, 9vw, 8rem) 1.5rem;
   --ambient-pointer-x: 50%;
   --ambient-pointer-y: 42%;
   --ambient-shift-x: 0px;
@@ -26,54 +26,54 @@
   position: relative;
   z-index: 1;
   display: grid;
-  gap: 1rem;
+  gap: 1.15rem;
   justify-items: center;
   text-align: center;
 }
 
 .formatter-eyebrow {
-  color: rgba(23, 32, 51, 0.44);
-  font-size: 0.82rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
+  color: rgba(15, 23, 40, 0.34);
+  font-size: 0.8rem;
+  font-weight: 560;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
 .formatter-title {
   margin: 0;
-  font-size: clamp(3.8rem, 8vw, 6.8rem);
-  line-height: 0.96;
-  letter-spacing: -0.055em;
-  font-weight: 700;
+  font-size: clamp(4.4rem, 9vw, 7.6rem);
+  line-height: 0.93;
+  letter-spacing: -0.065em;
+  font-weight: 680;
   color: #0f1728;
   text-wrap: balance;
 }
 
 .formatter-subtitle {
   margin: 0;
-  max-width: 33rem;
-  color: rgba(15, 23, 40, 0.64);
-  font-size: clamp(1rem, 2vw, 1.18rem);
-  line-height: 1.72;
+  max-width: 31rem;
+  color: rgba(15, 23, 40, 0.54);
+  font-size: clamp(1.02rem, 1.9vw, 1.16rem);
+  line-height: 1.75;
 }
 
 .formatter-surface {
   position: relative;
   z-index: 1;
-  width: min(100%, 860px);
+  width: min(100%, 820px);
   margin: 0 auto;
   display: grid;
-  gap: 1rem;
-  padding: clamp(1.25rem, 3vw, 1.6rem);
-  border: 1px solid rgba(15, 23, 42, 0.06);
-  border-radius: 32px;
+  gap: 1.1rem;
+  padding: clamp(1.1rem, 2.6vw, 1.45rem);
+  border: 1px solid rgba(15, 23, 42, 0.045);
+  border-radius: 36px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(250, 251, 253, 0.94)),
-    rgba(255, 255, 255, 0.82);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(249, 250, 252, 0.92)),
+    rgba(255, 255, 255, 0.76);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.88),
-    0 40px 80px rgba(31, 41, 55, 0.08);
-  backdrop-filter: blur(24px);
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 32px 72px rgba(31, 41, 55, 0.07);
+  backdrop-filter: blur(30px);
 }
 
 .formatter-composer-shell {
@@ -82,11 +82,11 @@
 
 .formatter-composer {
   display: grid;
-  gap: 1.25rem;
-  padding: clamp(1.4rem, 3vw, 1.8rem);
-  border-radius: 26px;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(15, 23, 42, 0.05);
+  gap: 1.35rem;
+  padding: clamp(1.55rem, 3.2vw, 1.95rem);
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(15, 23, 42, 0.04);
   transition:
     transform var(--motion-fast) var(--ease-standard),
     border-color var(--motion-fast) var(--ease-standard),
@@ -96,15 +96,15 @@
 .formatter-composer:hover,
 .formatter-composer:focus-within {
   transform: translateY(-1px);
-  border-color: rgba(10, 100, 232, 0.12);
-  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.05);
+  border-color: rgba(15, 23, 42, 0.06);
+  box-shadow: 0 20px 42px rgba(15, 23, 42, 0.045);
 }
 
 .formatter-composer[data-drag-active="true"] {
-  border-color: rgba(10, 100, 232, 0.22);
+  border-color: rgba(10, 100, 232, 0.16);
   box-shadow:
-    0 0 0 8px rgba(56, 152, 255, 0.08),
-    0 18px 36px rgba(15, 23, 42, 0.06);
+    0 0 0 10px rgba(56, 152, 255, 0.05),
+    0 20px 42px rgba(15, 23, 42, 0.05);
 }
 
 .formatter-composer[data-busy="true"] {
@@ -120,23 +120,23 @@
 
 .formatter-composer-copy {
   display: grid;
-  gap: 0.45rem;
+  gap: 0.35rem;
 }
 
 .formatter-composer-label {
-  color: rgba(15, 23, 42, 0.42);
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
+  color: rgba(15, 23, 42, 0.3);
+  font-size: 0.74rem;
+  font-weight: 560;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .formatter-composer-copy h2 {
   margin: 0;
-  font-size: clamp(1.55rem, 3vw, 2rem);
-  line-height: 1.08;
-  letter-spacing: -0.03em;
-  font-weight: 650;
+  font-size: clamp(1.7rem, 3vw, 2.15rem);
+  line-height: 1.04;
+  letter-spacing: -0.04em;
+  font-weight: 620;
 }
 
 .formatter-upload-button,
@@ -152,9 +152,9 @@
   flex-shrink: 0;
   min-height: 3rem;
   padding: 0 1.25rem;
-  background: rgba(15, 23, 42, 0.05);
-  color: #0f1728;
-  font-weight: 600;
+  background: rgba(15, 23, 42, 0.04);
+  color: rgba(15, 23, 40, 0.84);
+  font-weight: 580;
   transition:
     transform var(--motion-fast) var(--ease-standard),
     background-color var(--motion-fast) var(--ease-standard);
@@ -175,42 +175,42 @@
 
 .formatter-textarea {
   width: 100%;
-  min-height: 9rem;
+  min-height: 10.5rem;
   border: 0;
   outline: 0;
   resize: none;
-  background: rgba(246, 247, 250, 0.82);
-  border-radius: 22px;
-  padding: 1.15rem 1.2rem;
+  background: rgba(246, 247, 250, 0.72);
+  border-radius: 26px;
+  padding: 1.3rem 1.35rem;
   color: #0f1728;
-  font-size: 1rem;
-  line-height: 1.72;
-  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.04);
+  font-size: 1.02rem;
+  line-height: 1.76;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.035);
 }
 
 .formatter-textarea::placeholder {
-  color: rgba(15, 23, 42, 0.34);
+  color: rgba(15, 23, 42, 0.26);
 }
 
 .formatter-file-summary {
   display: grid;
   gap: 0.45rem;
-  padding: 1.2rem 1.25rem;
-  border-radius: 22px;
-  background: rgba(246, 247, 250, 0.88);
-  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.04);
+  padding: 1.25rem 1.35rem;
+  border-radius: 26px;
+  background: rgba(246, 247, 250, 0.74);
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.035);
 }
 
 .formatter-file-kicker {
-  color: rgba(15, 23, 42, 0.4);
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  color: rgba(15, 23, 42, 0.28);
+  font-size: 0.72rem;
+  font-weight: 560;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .formatter-file-summary strong {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   line-height: 1.35;
   word-break: break-word;
 }
@@ -224,9 +224,9 @@
 
 .formatter-composer-hint {
   margin: 0;
-  color: rgba(15, 23, 42, 0.5);
-  font-size: 0.95rem;
-  line-height: 1.55;
+  color: rgba(15, 23, 42, 0.42);
+  font-size: 0.92rem;
+  line-height: 1.6;
 }
 
 .formatter-composer-actions {
@@ -237,18 +237,18 @@
 
 .formatter-primary-button {
   min-height: 3.15rem;
-  padding: 0 1.4rem;
-  background: linear-gradient(180deg, #1f86ff, #0a64e8);
+  padding: 0 1.45rem;
+  background: linear-gradient(180deg, #2490ff, #0071e3);
   color: #fff;
-  font-weight: 640;
-  box-shadow: 0 16px 28px rgba(10, 100, 232, 0.2);
+  font-weight: 620;
+  box-shadow: 0 14px 24px rgba(0, 113, 227, 0.2);
 }
 
 .formatter-clear-button {
   min-height: 2.9rem;
   padding: 0 1rem;
-  background: rgba(15, 23, 42, 0.05);
-  color: rgba(15, 23, 42, 0.7);
+  background: rgba(15, 23, 42, 0.045);
+  color: rgba(15, 23, 42, 0.62);
   font-weight: 560;
 }
 
@@ -263,23 +263,23 @@
   display: grid;
   place-items: center;
   padding: 1.25rem;
-  background: rgba(241, 244, 249, 0.76);
-  backdrop-filter: blur(16px);
+  background: rgba(243, 246, 250, 0.7);
+  backdrop-filter: blur(22px);
 }
 
 .precheck-sheet {
   width: min(100%, 640px);
   display: grid;
-  gap: 1.25rem;
-  padding: clamp(1.35rem, 3vw, 1.8rem);
-  border-radius: 30px;
+  gap: 1.35rem;
+  padding: clamp(1.45rem, 3vw, 1.9rem);
+  border-radius: 34px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(249, 250, 253, 0.98)),
-    rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(15, 23, 42, 0.05);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(249, 250, 253, 0.98)),
+    rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(15, 23, 42, 0.045);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.88),
-    0 36px 72px rgba(15, 23, 42, 0.12);
+    inset 0 1px 0 rgba(255, 255, 255, 0.84),
+    0 34px 74px rgba(15, 23, 42, 0.11);
 }
 
 .precheck-sheet-top {
@@ -290,25 +290,26 @@
 }
 
 .precheck-sheet-eyebrow {
-  color: rgba(15, 23, 42, 0.44);
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
+  color: rgba(15, 23, 42, 0.34);
+  font-size: 0.76rem;
+  font-weight: 560;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
 .precheck-sheet-top h2 {
   margin: 0.35rem 0 0;
-  font-size: clamp(2rem, 4vw, 2.6rem);
-  line-height: 1.05;
-  letter-spacing: -0.04em;
+  font-size: clamp(2.2rem, 4vw, 2.8rem);
+  line-height: 1;
+  letter-spacing: -0.05em;
+  font-weight: 640;
 }
 
 .precheck-sheet-intro {
   margin: 0.65rem 0 0;
-  max-width: 28rem;
-  color: rgba(15, 23, 42, 0.56);
-  line-height: 1.68;
+  max-width: 26rem;
+  color: rgba(15, 23, 42, 0.48);
+  line-height: 1.7;
 }
 
 .precheck-sheet-close {
@@ -316,8 +317,8 @@
   height: 2.6rem;
   border: 0;
   border-radius: 999px;
-  background: rgba(15, 23, 42, 0.05);
-  color: rgba(15, 23, 42, 0.72);
+  background: rgba(15, 23, 42, 0.04);
+  color: rgba(15, 23, 42, 0.62);
   font-size: 1.4rem;
   cursor: pointer;
 }
@@ -327,20 +328,20 @@
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
-  padding: 1rem 1.1rem;
-  border-radius: 20px;
-  background: rgba(245, 247, 251, 0.92);
-  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.04);
+  padding: 1.05rem 1.15rem;
+  border-radius: 22px;
+  background: rgba(245, 247, 251, 0.76);
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.03);
 }
 
 .precheck-sheet-status strong {
   font-size: 1rem;
-  font-weight: 620;
+  font-weight: 600;
 }
 
 .precheck-sheet-status span {
-  color: rgba(15, 23, 42, 0.56);
-  font-size: 0.94rem;
+  color: rgba(15, 23, 42, 0.46);
+  font-size: 0.92rem;
   line-height: 1.55;
   text-align: right;
 }
@@ -354,9 +355,9 @@
   display: grid;
   gap: 0.45rem;
   padding: 1rem 1.05rem;
-  border-radius: 20px;
-  background: rgba(246, 247, 250, 0.88);
-  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.04);
+  border-radius: 22px;
+  background: rgba(246, 247, 250, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.03);
 }
 
 .precheck-summary-row p,
@@ -365,23 +366,23 @@
 }
 
 .precheck-summary-row p {
-  color: rgba(15, 23, 42, 0.42);
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  color: rgba(15, 23, 42, 0.3);
+  font-size: 0.72rem;
+  font-weight: 560;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
 .precheck-summary-row strong {
-  font-size: 1rem;
-  font-weight: 560;
-  line-height: 1.55;
+  font-size: 0.98rem;
+  font-weight: 540;
+  line-height: 1.6;
   color: #0f1728;
 }
 
 .precheck-summary-row-attention {
-  background: rgba(255, 249, 241, 0.94);
-  box-shadow: inset 0 0 0 1px rgba(243, 182, 94, 0.15);
+  background: rgba(255, 248, 239, 0.84);
+  box-shadow: inset 0 0 0 1px rgba(243, 182, 94, 0.1);
 }
 
 .precheck-sheet-actions {

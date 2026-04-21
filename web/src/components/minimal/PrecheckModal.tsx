@@ -28,7 +28,7 @@ export function PrecheckModal({ open, precheck, onCancel, onConfirm }: PrecheckM
             <p className="precheck-sheet-eyebrow">Precheck</p>
             <h2 id="precheck-title">检查完成</h2>
             <p className="precheck-sheet-intro">
-              {attentionCount > 0 ? `发现 ${attentionCount} 处需要留意的结构摘要，仍可继续导出。` : "结构主线已完成识别，可以继续导出。"}
+              {attentionCount > 0 ? `发现 ${attentionCount} 处需要留意的摘要，仍可继续导出。` : "结构主线已完成识别，可以继续导出。"}
             </p>
           </div>
           <button type="button" className="precheck-sheet-close" onClick={onCancel} aria-label="关闭预检结果">
@@ -38,7 +38,7 @@ export function PrecheckModal({ open, precheck, onCancel, onConfirm }: PrecheckM
 
         <div className="precheck-sheet-status">
           <strong>可导出</strong>
-          <span>Word 文件将按当前识别结果生成。</span>
+          <span>Word 将按当前识别结果生成。</span>
         </div>
 
         <div className="precheck-sheet-list">

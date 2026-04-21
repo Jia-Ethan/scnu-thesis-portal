@@ -104,8 +104,8 @@ export function HomeComposer({
       >
         <div className="formatter-composer-top">
           <div className="formatter-composer-copy">
-            <p className="formatter-composer-label">输入内容</p>
-            <h2>一个页面，完成预检与导出。</h2>
+            <p className="formatter-composer-label">开始</p>
+            <h2>把论文内容放进这里。</h2>
           </div>
           <button
             type="button"
@@ -148,7 +148,7 @@ export function HomeComposer({
           <>
             {selectedFile ? (
               <div className="formatter-file-summary" aria-label="当前已选文件">
-                <span className="formatter-file-kicker">已选择文件</span>
+                <span className="formatter-file-kicker">已载入</span>
                 <strong>{selectedFile.name}</strong>
               </div>
             ) : (
@@ -171,7 +171,7 @@ export function HomeComposer({
 
             <div className="formatter-composer-footer">
               <p className="formatter-composer-hint">
-                {selectedFile ? "支持直接上传 `.docx` 文档。" : "也可以把已有正文直接粘贴到这里。"}
+                {selectedFile ? "已准备好进入预检。" : "也可以直接粘贴已有正文。"}
               </p>
               <div className="formatter-composer-actions">
                 {hasContent ? (
