@@ -1,17 +1,20 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { HealthResponse, PrecheckResponse } from "../generated/contracts";
 import {
   ApiError,
+  cancelPublicExportJob,
+  createPublicExportJob,
   downloadUrlAsBlob,
   downloadBlob,
+  getPublicExportJob,
   getHealth,
-  publicExportDocx,
   publicPrecheckDocx,
   publicPrecheckText,
+  type PublicExportJobResponse,
 } from "./api";
 import { exportFilename, inferPhase, mapApiError, validateDocxFile, validateTextInput, type FlowPhase, type InlineErrorState } from "./domain";
 
-const EXPORT_MIN_DURATION_MS = typeof navigator !== "undefined" && /jsdom/i.test(navigator.userAgent) ? 20 : 4200;
+const EXPORT_JOB_POLL_INTERVAL_MS = typeof navigator !== "undefined" && /jsdom/i.test(navigator.userAgent) ? 20 : 700;
 
 export function useMinimalExportFlow() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
@@ -22,9 +25,12 @@ export function useMinimalExportFlow() {
   const [precheck, setPrecheck] = useState<PrecheckResponse | null>(null);
   const [exporting, setExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
+  const [exportMessage, setExportMessage] = useState("");
   const [inlineError, setInlineError] = useState<InlineErrorState | null>(null);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState("");
+  const exportJobIdRef = useRef<string | null>(null);
+  const cancelRequestedRef = useRef(false);
 
   useEffect(() => {
     getHealth()
@@ -33,24 +39,6 @@ export function useMinimalExportFlow() {
       })
       .catch((error) => setInlineError(mapApiError(error instanceof ApiError ? error : new ApiError("健康检查失败", "NETWORK_ERROR"))));
   }, []);
-
-  useEffect(() => {
-    if (!exporting) {
-      setExportProgress(0);
-      return;
-    }
-
-    setExportProgress(0);
-    const timer = window.setInterval(() => {
-      setExportProgress((current) => {
-        if (current >= 92) return current;
-        const next = current + Math.max(1.5, (92 - current) * 0.11);
-        return Math.min(next, 92);
-      });
-    }, 120);
-
-    return () => window.clearInterval(timer);
-  }, [exporting]);
 
   const phase: FlowPhase = useMemo(
     () => inferPhase(rawText, selectedFile, busy, previewModalOpen, exporting),
@@ -65,9 +53,12 @@ export function useMinimalExportFlow() {
     setPrecheck(null);
     setExporting(false);
     setExportProgress(0);
+    setExportMessage("");
     setInlineError(null);
     setPrivacyAccepted(false);
     setTurnstileToken("");
+    exportJobIdRef.current = null;
+    cancelRequestedRef.current = false;
   }
 
   function resetResult() {
@@ -144,6 +135,15 @@ export function useMinimalExportFlow() {
     setPreviewModalOpen(false);
   }
 
+  function syncExportJob(job: PublicExportJobResponse) {
+    setExportProgress(job.progress);
+    setExportMessage(job.message || "正在生成 Word 文件");
+  }
+
+  function sleep(ms: number) {
+    return new Promise((resolve) => window.setTimeout(resolve, ms));
+  }
+
   async function handleConfirmExport() {
     if (!precheck?.summary.can_confirm) {
       setInlineError({ message: precheck?.summary.blocking_message || "预检仍存在阻塞项，暂时无法导出。", code: "FIELD_MISSING" });
@@ -153,23 +153,75 @@ export function useMinimalExportFlow() {
     setInlineError(null);
     setPreviewModalOpen(false);
     setExporting(true);
+    setExportProgress(0);
+    setExportMessage("正在创建导出任务。");
+    cancelRequestedRef.current = false;
 
     try {
       if (!precheck.export_token) {
         throw new ApiError("导出凭证已失效，请重新预检后再导出。", "EXPORT_TOKEN_INVALID");
       }
-      const minDelay = new Promise((resolve) => window.setTimeout(resolve, EXPORT_MIN_DURATION_MS));
-      const [exported] = await Promise.all([publicExportDocx(precheck.thesis, precheck.export_token), minDelay]);
-      const blob = await downloadUrlAsBlob(exported.download_url);
+      let job = await createPublicExportJob(precheck.thesis, precheck.export_token);
+      exportJobIdRef.current = job.job_id;
+      syncExportJob(job);
+
+      while (job.status === "running") {
+        await sleep(EXPORT_JOB_POLL_INTERVAL_MS);
+        if (cancelRequestedRef.current) {
+          return;
+        }
+        job = await getPublicExportJob(job.job_id);
+        syncExportJob(job);
+      }
+
+      if (job.status === "canceled") {
+        throw new ApiError("导出已取消，可重新导出。", "EXPORT_CANCELED");
+      }
+      if (job.status === "failed") {
+        throw new ApiError(job.message || "导出失败，请稍后重试。", job.error_code || "EXPORT_FAILED");
+      }
+      if (!job.download_url) {
+        throw new ApiError("导出文件尚未生成，请重新导出。", "EXPORT_FAILED");
+      }
+
+      const blob = await downloadUrlAsBlob(job.download_url);
       setExportProgress(100);
       downloadBlob(blob, exportFilename(precheck.thesis));
       await new Promise((resolve) => window.setTimeout(resolve, 220));
       clearAll();
     } catch (error) {
       setExporting(false);
+      setExportMessage("");
       setInlineError(mapApiError(error instanceof ApiError ? error : new ApiError("导出失败", "EXPORT_FAILED")));
     }
   }
+
+  async function handleCancelExport() {
+    const jobId = exportJobIdRef.current;
+    cancelRequestedRef.current = true;
+    if (!jobId) {
+      setExporting(false);
+      setInlineError({ message: "导出已取消，可重新导出。", code: "EXPORT_CANCELED" });
+      return;
+    }
+    try {
+      const job = await cancelPublicExportJob(jobId);
+      syncExportJob(job);
+      setInlineError({ message: "导出已取消，可重新导出。", code: "EXPORT_CANCELED" });
+    } catch (error) {
+      setInlineError(mapApiError(error instanceof ApiError ? error : new ApiError("取消失败，请稍后重试。", "EXPORT_FAILED")));
+    } finally {
+      setExporting(false);
+      setExportMessage("");
+    }
+  }
+
+  const canRetryExport =
+    Boolean(precheck?.summary.can_confirm) &&
+    !busy &&
+    !exporting &&
+    !previewModalOpen &&
+    (inlineError?.code === "EXPORT_FAILED" || inlineError?.code === "EXPORT_CANCELED");
 
   return {
     health,
@@ -181,7 +233,9 @@ export function useMinimalExportFlow() {
     precheck,
     exporting,
     exportProgress,
+    exportMessage,
     inlineError,
+    canRetryExport,
     privacyAccepted,
     setPrivacyAccepted,
     turnstileToken,
@@ -193,5 +247,7 @@ export function useMinimalExportFlow() {
     handlePrecheck,
     handleCancelPreview,
     handleConfirmExport,
+    handleCancelExport,
+    handleRetryExport: handleConfirmExport,
   };
 }

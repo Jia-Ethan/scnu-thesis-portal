@@ -112,11 +112,43 @@ export interface PublicExportResponse {
   expires_at: string;
 }
 
+export type PublicExportJobStatus = "running" | "done" | "failed" | "canceled";
+
+export interface PublicExportJobResponse {
+  job_id: string;
+  export_id: string;
+  status: PublicExportJobStatus;
+  progress: number;
+  message: string;
+  download_url: string | null;
+  report_url: string | null;
+  expires_at: string;
+  error_code: string | null;
+}
+
 export function publicExportDocx(thesis: NormalizedThesis, exportToken: string) {
   return jsonRequest<PublicExportResponse>("/api/public/exports/docx", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ thesis, export_token: exportToken }),
+  });
+}
+
+export function createPublicExportJob(thesis: NormalizedThesis, exportToken: string) {
+  return jsonRequest<PublicExportJobResponse>("/api/public/export-jobs/docx", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ thesis, export_token: exportToken }),
+  });
+}
+
+export function getPublicExportJob(jobId: string) {
+  return jsonRequest<PublicExportJobResponse>(`/api/public/export-jobs/${jobId}`);
+}
+
+export function cancelPublicExportJob(jobId: string) {
+  return jsonRequest<PublicExportJobResponse>(`/api/public/export-jobs/${jobId}/cancel`, {
+    method: "POST",
   });
 }
 

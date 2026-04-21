@@ -1,8 +1,10 @@
 type WaveExportProgressProps = {
   progress: number;
+  message?: string;
+  onCancel?: () => void;
 };
 
-export function WaveExportProgress({ progress }: WaveExportProgressProps) {
+export function WaveExportProgress({ progress, message = "正在生成 Word 文件", onCancel }: WaveExportProgressProps) {
   return (
     <div className="wave-progress" aria-live="polite" aria-label={`正在导出，当前进度 ${Math.round(progress)}%`}>
       <div className="wave-progress-track">
@@ -11,9 +13,14 @@ export function WaveExportProgress({ progress }: WaveExportProgressProps) {
         </div>
       </div>
       <div className="wave-progress-meta">
-        <strong>正在生成 Word 文件</strong>
+        <strong>{message}</strong>
         <span>{Math.round(progress)}%</span>
       </div>
+      {onCancel ? (
+        <button type="button" className="wave-progress-cancel" onClick={onCancel}>
+          取消导出
+        </button>
+      ) : null}
     </div>
   );
 }

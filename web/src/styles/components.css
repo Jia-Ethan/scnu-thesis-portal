@@ -204,6 +204,7 @@
 .inline-error span {
   display: inline-flex;
   align-items: center;
+  gap: var(--space-2);
   min-height: 2rem;
 }
 
@@ -215,6 +216,21 @@
   box-shadow: 0 10px 20px rgba(199, 169, 172, 0.08);
   color: #9a5f64;
   font-size: var(--text-sm);
+}
+
+.inline-error button,
+.wave-progress-cancel {
+  border: 1px solid rgba(154, 95, 100, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.inline-error button {
+  padding: 0.18rem 0.55rem;
 }
 
 .wave-progress {
@@ -258,6 +274,12 @@
 
 .wave-progress-meta strong {
   font-size: var(--text-sm);
+}
+
+.wave-progress-cancel {
+  justify-self: end;
+  padding: 0.32rem 0.72rem;
+  color: var(--text-secondary);
 }
 
 .precheck-modal-top,

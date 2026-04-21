@@ -39,13 +39,17 @@ function HomeRoute() {
         selectedFile={flow.selectedFile}
         phase={flow.phase}
         exportProgress={flow.exportProgress}
+        exportMessage={flow.exportMessage}
         error={flow.inlineError}
+        canRetryExport={flow.canRetryExport}
         privacyAccepted={flow.privacyAccepted}
         turnstileToken={flow.turnstileToken}
         onTextChange={flow.handleTextChange}
         onUploadTrigger={flow.handleUploadTrigger}
         onFileSelect={flow.handleFileSelect}
         onSubmit={flow.handlePrecheck}
+        onCancelExport={flow.handleCancelExport}
+        onRetryExport={flow.handleRetryExport}
         onClear={flow.clearAll}
         onPrivacyAcceptedChange={flow.setPrivacyAccepted}
         onTurnstileTokenChange={flow.setTurnstileToken}

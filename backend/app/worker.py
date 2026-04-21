@@ -28,6 +28,7 @@ def cleanup_expired_exports() -> int:
         db.commit()
     storage.delete_prefix("public/uploads")
     cleanup_public_exports()
+    cleanup_public_export_jobs()
     return deleted
 
 
@@ -50,11 +51,33 @@ def cleanup_public_exports() -> int:
     return deleted
 
 
+def cleanup_public_export_jobs() -> int:
+    storage_root = Path(os.getenv("SCNU_STORAGE_DIR", str(OUTPUTS_DIR / "storage")))
+    root = storage_root / "public" / "export-jobs"
+    if not root.exists():
+        return 0
+    now = datetime.now(UTC).replace(tzinfo=None)
+    deleted = 0
+    for meta_path in root.glob("*/meta.json"):
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            expires_at = datetime.fromisoformat(meta["expires_at"])
+        except Exception:
+            continue
+        if expires_at < now:
+            storage.delete_prefix(f"public/export-jobs/{meta_path.parent.name}")
+            if meta.get("export_id"):
+                storage.delete_prefix(f"public/exports/{meta['export_id']}")
+            deleted += 1
+    return deleted
+
+
 def main() -> None:
     init_db()
     print("SCNU Workbench worker ready. Queue integration is reserved for Celery/Redis jobs.")
     while True:
         cleanup_expired_exports()
+        cleanup_public_export_jobs()
         time.sleep(60)
 
 

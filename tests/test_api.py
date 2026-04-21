@@ -1,4 +1,6 @@
 from pathlib import Path
+import time
+from threading import Event
 from zipfile import ZipFile
 import io
 import json
@@ -8,7 +10,7 @@ from fastapi.testclient import TestClient
 
 from backend.app.main import app
 from backend.app.storage import storage
-from backend.app.worker import cleanup_public_exports
+from backend.app.worker import cleanup_public_export_jobs, cleanup_public_exports
 
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "sample-thesis.docx"
 
@@ -201,6 +203,62 @@ def test_public_docx_export_uses_token_and_retained_download():
         assert report.json()["export_id"] == payload["export_id"]
 
 
+def test_public_export_job_completes_and_serves_download():
+    with TestClient(app) as client:
+        precheck = client.post(
+            "/api/public/precheck/text",
+            json={"text": "# 引言\n\n这是已有论文正文。" * 40, "privacy_accepted": True},
+        ).json()
+        job = client.post(
+            "/api/public/export-jobs/docx",
+            json={"thesis": precheck["thesis"], "export_token": precheck["export_token"]},
+        )
+        assert job.status_code == 200
+        job_payload = job.json()
+        assert job_payload["status"] in {"running", "done"}
+
+        deadline = time.time() + 3
+        while job_payload["status"] == "running" and time.time() < deadline:
+            time.sleep(0.05)
+            job_payload = client.get(f"/api/public/export-jobs/{job_payload['job_id']}").json()
+
+        assert job_payload["status"] == "done"
+        assert job_payload["progress"] == 100
+        download = client.get(job_payload["download_url"])
+        assert download.status_code == 200
+        assert download.headers["content-type"] == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+
+def test_public_export_job_can_be_canceled(monkeypatch):
+    started = Event()
+    release = Event()
+
+    def slow_export(_thesis):
+        started.set()
+        release.wait(2)
+        return b"PK-slow-docx"
+
+    monkeypatch.setattr("backend.app.public_api.export_docx", slow_export)
+
+    with TestClient(app) as client:
+        precheck = client.post(
+            "/api/public/precheck/text",
+            json={"text": "# 引言\n\n这是已有论文正文。" * 40, "privacy_accepted": True},
+        ).json()
+        job = client.post(
+            "/api/public/export-jobs/docx",
+            json={"thesis": precheck["thesis"], "export_token": precheck["export_token"]},
+        ).json()
+        assert started.wait(1)
+        canceled = client.post(f"/api/public/export-jobs/{job['job_id']}/cancel").json()
+        release.set()
+
+        assert canceled["status"] == "canceled"
+        assert canceled["error_code"] == "EXPORT_CANCELED"
+        final = client.get(f"/api/public/export-jobs/{job['job_id']}").json()
+        assert final["status"] == "canceled"
+
+
 def test_public_export_expiry_and_janitor_cleanup():
     with TestClient(app) as client:
         precheck = client.post(
@@ -218,6 +276,29 @@ def test_public_export_expiry_and_janitor_cleanup():
     meta_path.write_text(json.dumps(meta), encoding="utf-8")
 
     assert cleanup_public_exports() == 1
+    assert not meta_path.exists()
+
+
+def test_public_export_job_expiry_cleanup():
+    job_id = "job_expired_cleanup"
+    export_id = "pub_expired_cleanup"
+    meta = {
+        "job_id": job_id,
+        "export_id": export_id,
+        "status": "done",
+        "progress": 100,
+        "message": "导出完成。",
+        "download_url": f"/api/public/exports/{export_id}/download",
+        "report_url": f"/api/public/exports/{export_id}/report",
+        "expires_at": (datetime.now(UTC).replace(tzinfo=None) - timedelta(minutes=1)).isoformat(),
+        "error_code": None,
+        "cancel_requested": False,
+    }
+    storage.put_bytes(f"public/export-jobs/{job_id}/meta.json", json.dumps(meta).encode("utf-8"))
+    storage.put_bytes(f"public/exports/{export_id}/demo.docx", b"PK-expired")
+    meta_path = storage.root / "public" / "export-jobs" / job_id / "meta.json"
+
+    assert cleanup_public_export_jobs() == 1
     assert not meta_path.exists()
 
 
