@@ -80,7 +80,7 @@ export function WorkbenchDemo() {
   return (
     <main className="workbench-shell demo-workbench-shell">
       <header className="workbench-topbar demo-workbench-topbar">
-        <div>
+        <div className="workbench-heading">
           <a className="workbench-back" href="#/">
             返回公开首页
           </a>
@@ -94,10 +94,36 @@ export function WorkbenchDemo() {
         </div>
       </header>
 
+      <section className="workbench-overview" aria-label="示例项目概览">
+        <article>
+          <span>项目类型</span>
+          <strong>Demo project</strong>
+          <p>只展示信息结构，不承载真实论文数据。</p>
+        </article>
+        <article>
+          <span>隐私模式</span>
+          <strong>本地优先</strong>
+          <p>公开示例不允许远程 Provider，也不保存用户内容。</p>
+        </article>
+        <article>
+          <span>待处理 Proposal</span>
+          <strong>{proposals.filter((proposal) => proposal.status === "pending").length}</strong>
+          <p>可点击切换接受、暂存或拒绝状态。</p>
+        </article>
+        <article>
+          <span>导出记录</span>
+          <strong>{exportsList.length}</strong>
+          <p>支持模拟导出，观察版本与记录如何联动。</p>
+        </article>
+      </section>
+
       <section className="workbench-grid demo-workbench-grid">
         <aside className="workbench-panel">
           <div className="workbench-panel-head">
-            <h2>项目与文件</h2>
+            <div>
+              <p className="workbench-section-label">Workspace</p>
+              <h2>项目与文件</h2>
+            </div>
             <span className="proposal-status">demo project</span>
           </div>
           <article className="demo-project-card">
@@ -126,7 +152,10 @@ export function WorkbenchDemo() {
             <p>这里只展示 Workbench 信息结构。真实论文、Provider key 和远程模型授权应在私有部署中处理。</p>
           </div>
           <div className="workbench-panel-head">
-            <h2>文档预览与版本</h2>
+            <div>
+              <p className="workbench-section-label">Review sheet</p>
+              <h2>文档预览与版本</h2>
+            </div>
             <div className="workbench-actions">
               {versions.map((item) => (
                 <button key={item.id} type="button" onClick={() => setActiveVersion(item.id)} aria-pressed={activeVersion === item.id}>
@@ -137,6 +166,11 @@ export function WorkbenchDemo() {
             </div>
           </div>
           <article className="workbench-preview demo-paper-preview">
+            <div className="workbench-preview-meta">
+              <span>软件工程</span>
+              <span>计算机学院</span>
+              <span>本地优先示例</span>
+            </div>
             <p className="public-kicker">{version.label}</p>
             <h3>基于学习投入的本科论文示例</h3>
             <p>{version.summary}</p>
@@ -163,7 +197,12 @@ export function WorkbenchDemo() {
         </section>
 
         <aside className="workbench-panel">
-          <h2>Agent 面板</h2>
+          <div className="workbench-panel-head">
+            <div>
+              <p className="workbench-section-label">Agent runtime</p>
+              <h2>Agent 面板</h2>
+            </div>
+          </div>
           <div className="workbench-events">
             {demoEvents.map((event) => (
               <div key={event}>

@@ -42,52 +42,78 @@ export function MinimalHome(props: MinimalHomeProps) {
         data-busy={isBusy}
       >
         <HeroAmbient containerRef={heroRef} />
-        <img className="public-hero-image" src="/product/workbench-preview.png" alt="" aria-hidden="true" />
-        <div className="public-hero-copy">
-          <p className="public-kicker">SCNU Thesis Agent Workbench</p>
-          <h1 id="sc-th-title" className="minimal-logo">
-            华师本科论文格式合规与版本工作台
-          </h1>
-          <p className="public-subtitle">
-            把论文材料、格式检查、老师批注、建议队列、版本和导出放进同一个可追溯项目空间。公开站只做快速格式预检与 Word 导出，不启用远程 AI。
-          </p>
-          <nav className="public-hero-actions" aria-label="首页快捷入口">
-            <a href="#quick-export">在线快速导出</a>
-            <a href="#/workbench-demo">查看 Workbench</a>
-            <a href="#/en">English</a>
-            <a href="https://github.com/Jia-Ethan/scnu-thesis-portal" target="_blank" rel="noreferrer">GitHub</a>
-            <a href="#self-host">本地部署</a>
-          </nav>
-        </div>
-        <section id="quick-export" className="public-export-panel" aria-label="在线快速导出">
-          <div className="public-export-copy">
-            <p className="public-kicker">Public demo</p>
-            <h2>上传 .docx 或粘贴已有论文正文，先做格式预检，再导出规范化 Word。</h2>
+        <div className="public-hero-surface">
+          <div className="public-hero-grid">
+            <div className="public-hero-copy">
+              <div className="public-trust-strip" aria-label="产品定位与边界">
+                {trustSignals.map((item) => (
+                  <span key={item}>{item}</span>
+                ))}
+              </div>
+              <p className="public-kicker">SCNU Thesis Agent Workbench</p>
+              <h1 id="sc-th-title" className="minimal-logo">
+                华师本科论文格式合规与版本工作台
+              </h1>
+              <p className="public-subtitle">
+                把论文材料、格式检查、老师批注、建议队列、版本和导出放进同一个可追溯项目空间。公开站只做快速格式预检与 Word 导出，不启用远程 AI；完整 Workbench 更适合私有部署。
+              </p>
+              <nav className="public-hero-actions" aria-label="首页快捷入口">
+                <a href="#quick-export">在线快速导出</a>
+                <a href="#/workbench-demo">查看 Workbench</a>
+                <a href="#self-host">本地部署</a>
+                <a href="#/en">English</a>
+                <a href="https://github.com/Jia-Ethan/scnu-thesis-portal" target="_blank" rel="noreferrer">GitHub</a>
+              </nav>
+              <div className="public-hero-highlights" aria-label="核心能力">
+                {heroHighlights.map((item) => (
+                  <article key={item.title}>
+                    <span>{item.label}</span>
+                    <h2>{item.title}</h2>
+                    <p>{item.description}</p>
+                  </article>
+                ))}
+              </div>
+            </div>
+
+            <div className="public-hero-side">
+              <figure className="public-hero-figure">
+                <img className="public-hero-image" src="/product/workbench-preview.png" alt="Workbench 项目空间预览截图" />
+                <figcaption>私有部署时可继续进入 Proposal Queue、版本历史、导出记录与 Provider 授权面板。</figcaption>
+              </figure>
+
+              <section id="quick-export" className="public-export-panel" aria-label="在线快速导出">
+                <div className="public-export-copy">
+                  <p className="public-kicker">Public demo</p>
+                  <h2>上传 .docx 或粘贴已有论文正文，先做结构预检，再导出规范化 Word。</h2>
+                  <p>公开站不启用远程 AI，也不把未确认候选直接写回版本。</p>
+                </div>
+                <HomeComposer
+                  rawText={props.rawText}
+                  selectedFile={props.selectedFile}
+                  phase={props.phase}
+                  exportProgress={props.exportProgress}
+                  exportMessage={props.exportMessage}
+                  privacyAccepted={props.privacyAccepted}
+                  turnstileToken={props.turnstileToken}
+                  onTextChange={props.onTextChange}
+                  onUploadTrigger={props.onUploadTrigger}
+                  onFileSelect={props.onFileSelect}
+                  onSubmit={props.onSubmit}
+                  onCancelExport={props.onCancelExport}
+                  onClear={props.onClear}
+                  onDragActiveChange={setIsDragActive}
+                  onPrivacyAcceptedChange={props.onPrivacyAcceptedChange}
+                  onTurnstileTokenChange={props.onTurnstileTokenChange}
+                />
+                <InlineError
+                  message={props.error?.message ?? null}
+                  actionLabel={props.canRetryExport ? "重新导出" : undefined}
+                  onAction={props.canRetryExport ? props.onRetryExport : undefined}
+                />
+              </section>
+            </div>
           </div>
-          <HomeComposer
-            rawText={props.rawText}
-            selectedFile={props.selectedFile}
-            phase={props.phase}
-            exportProgress={props.exportProgress}
-            exportMessage={props.exportMessage}
-            privacyAccepted={props.privacyAccepted}
-            turnstileToken={props.turnstileToken}
-            onTextChange={props.onTextChange}
-            onUploadTrigger={props.onUploadTrigger}
-            onFileSelect={props.onFileSelect}
-            onSubmit={props.onSubmit}
-            onCancelExport={props.onCancelExport}
-            onClear={props.onClear}
-            onDragActiveChange={setIsDragActive}
-            onPrivacyAcceptedChange={props.onPrivacyAcceptedChange}
-            onTurnstileTokenChange={props.onTurnstileTokenChange}
-          />
-          <InlineError
-            message={props.error?.message ?? null}
-            actionLabel={props.canRetryExport ? "重新导出" : undefined}
-            onAction={props.canRetryExport ? props.onRetryExport : undefined}
-          />
-        </section>
+        </div>
       </section>
 
       <section className="public-section public-flow" aria-labelledby="demo-flow-title">
@@ -167,6 +193,26 @@ docker compose up --build`}</code></pre>
     </main>
   );
 }
+
+const trustSignals = ["非官方但严肃", "本地优先", "Proposal Queue 先确认后入版"];
+
+const heroHighlights = [
+  {
+    label: "Capability 01",
+    title: "结构预检先行",
+    description: "先识别摘要、目录、正文、参考文献与复杂对象风险，再决定是否导出。",
+  },
+  {
+    label: "Capability 02",
+    title: "建议队列可追溯",
+    description: "AI 或规则候选先进入 Proposal Queue，未确认前不会影响当前版本。",
+  },
+  {
+    label: "Capability 03",
+    title: "私有部署更完整",
+    description: "真实论文建议放在私有环境中处理访问码、Provider 授权和长期项目数据。",
+  },
+];
 
 const demoFlow = [
   { index: "01", title: "上传材料", description: "上传 .docx 或粘贴已有论文正文，快速进入结构识别。" },

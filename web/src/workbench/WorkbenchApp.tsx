@@ -57,6 +57,9 @@ export function WorkbenchApp() {
 
   const currentVersion = useMemo(() => versions[0] ?? null, [versions]);
   const remoteAllowed = !!activeProject?.remote_provider_allowed && activeProject.privacy_mode === "remote_allowed";
+  const pendingProposalCount = proposals.filter((proposal) => proposal.status === "pending").length;
+  const latestExport = exportsList[0] ?? null;
+  const latestEvent = events[events.length - 1] ?? null;
 
   useEffect(() => {
     void bootWithAccessCheck();
@@ -246,17 +249,41 @@ export function WorkbenchApp() {
   return (
     <main className="workbench-shell">
       <header className="workbench-topbar">
-        <div>
+        <div className="workbench-heading">
           <a className="workbench-back" href="#/">
             返回快速导出
           </a>
           <h1>SCNU Thesis Agent Workbench</h1>
+          <p className="workbench-topbar-copy">围绕论文材料、建议队列、版本与导出形成一个可追溯项目空间。</p>
         </div>
         <div className="workbench-status">
           <span>{currentVersion ? `当前版本 ${currentVersion.label}` : "暂无版本"}</span>
           <ModelStatusBadge project={activeProject} configs={providerConfigs} />
         </div>
       </header>
+
+      <section className="workbench-overview" aria-label="项目概览">
+        <article>
+          <span>项目状态</span>
+          <strong>{activeProject ? stageLabel(activeProject.writing_stage) : "未创建项目"}</strong>
+          <p>{activeProject ? "当前写作阶段与版本操作保持联动。" : "先建立项目，再上传论文材料。"}</p>
+        </article>
+        <article>
+          <span>隐私模式</span>
+          <strong>{activeProject?.privacy_mode === "remote_allowed" ? "远程已授权" : "本地优先"}</strong>
+          <p>{activeProject?.privacy_mode === "remote_allowed" ? "远程 Provider 仅在项目授权后可用。" : "真实论文内容默认不离开本机。"} </p>
+        </article>
+        <article>
+          <span>待处理 Proposal</span>
+          <strong>{pendingProposalCount}</strong>
+          <p>{pendingProposalCount > 0 ? "仍有候选建议等待人工确认。" : "当前没有待确认建议。"} </p>
+        </article>
+        <article>
+          <span>最新导出</span>
+          <strong>{latestExport ? latestExport.format.toUpperCase() : "暂无"}</strong>
+          <p>{latestExport ? latestExport.filename : "导出记录会在这里快速回看。"}</p>
+        </article>
+      </section>
 
       {projects.length === 0 ? (
         <WorkbenchEmptyState>
@@ -267,7 +294,10 @@ export function WorkbenchApp() {
         <section className="workbench-grid">
           <aside className="workbench-panel">
             <div className="workbench-panel-head">
-              <h2>项目与文件</h2>
+              <div>
+                <p className="workbench-section-label">Workspace</p>
+                <h2>项目与文件</h2>
+              </div>
               <button type="button" onClick={() => setShowWizard((value) => !value)} disabled={busy}>
                 {showWizard ? "收起" : "新建项目"}
               </button>
@@ -318,7 +348,10 @@ export function WorkbenchApp() {
           <section className="workbench-document">
             <PrivacyConsentBanner project={activeProject} />
             <div className="workbench-panel-head">
-              <h2>文档预览与版本</h2>
+              <div>
+                <p className="workbench-section-label">Review sheet</p>
+                <h2>文档预览与版本</h2>
+              </div>
               <div className="workbench-actions">
                 <button type="button" disabled={!currentVersion || busy} onClick={() => void handleExport("docx")}>DOCX</button>
                 <button type="button" disabled={!currentVersion || busy} onClick={() => void handleExport("markdown")}>Markdown</button>
@@ -329,6 +362,11 @@ export function WorkbenchApp() {
             {message && <p className="workbench-message">{message}</p>}
             {currentVersion ? (
               <article className="workbench-preview">
+                <div className="workbench-preview-meta">
+                  <span>{activeProject?.department || "学院待补充"}</span>
+                  <span>{activeProject?.major || "专业待补充"}</span>
+                  <span>{activeProject?.advisor || "指导老师待补充"}</span>
+                </div>
                 <h3>{currentVersion.thesis.cover.title || activeProject?.title || "未命名论文"}</h3>
                 <p>{currentVersion.thesis.abstract_cn.content || "中文摘要待补充。"}</p>
                 <div className="workbench-blocks">
@@ -355,7 +393,18 @@ export function WorkbenchApp() {
           </section>
 
           <aside className="workbench-panel">
-            <h2>Agent 面板</h2>
+            <div className="workbench-panel-head">
+              <div>
+                <p className="workbench-section-label">Agent runtime</p>
+                <h2>Agent 面板</h2>
+              </div>
+            </div>
+            {latestEvent ? (
+              <div className="workbench-callout">
+                <strong>{eventLabel(latestEvent.type)}</strong>
+                <p>最近一次任务事件已经记录，可继续查看 Proposal 与导出记录。</p>
+              </div>
+            ) : null}
             <div className="workbench-events">
               {events.map((event) => (
                 <div key={event.id}>
