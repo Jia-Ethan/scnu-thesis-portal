@@ -10,6 +10,10 @@ When `SCNU_ACCESS_CODE` is set, all `/api/*` routes require the access cookie ex
 - `POST /api/public/precheck/docx`
 - `POST /api/public/precheck/text`
 - `POST /api/public/exports/docx`
+- `POST /api/public/export-jobs/docx`
+- `GET /api/public/export-jobs/{id}`
+- `POST /api/public/export-jobs/{id}/cancel`
+- `POST /api/public/export-jobs/{id}/retry`
 - `GET /api/public/exports/{id}/download`
 - `GET /api/public/exports/{id}/report`
 - `GET /api/access-code/status`
@@ -53,6 +57,54 @@ JSON request:
 ```
 
 Returns a retained export with `download_url`, `report_url`, and `expires_at`. Public exports are kept for 30 minutes.
+
+This synchronous endpoint is retained for compatibility. The public UI uses the Job endpoints below.
+
+### `POST /api/public/export-jobs/docx`
+
+JSON request:
+
+```json
+{
+  "thesis": {},
+  "export_token": "..."
+}
+```
+
+Creates a background export job and returns:
+
+```json
+{
+  "job_id": "job_...",
+  "export_id": "pub_...",
+  "status": "running",
+  "progress": 5,
+  "message": "导出任务已创建。",
+  "download_url": null,
+  "report_url": null,
+  "expires_at": "2026-04-21T12:30:00",
+  "error_code": null
+}
+```
+
+Job status values:
+
+- `running`
+- `done`
+- `failed`
+- `canceled`
+
+### `GET /api/public/export-jobs/{id}`
+
+Returns the latest persisted job status. When `status=done`, `download_url` and `report_url` are available.
+
+### `POST /api/public/export-jobs/{id}/cancel`
+
+Requests cancellation and returns the persisted job status. Cancellation is cooperative: if the export has already completed, the completed state is returned.
+
+### `POST /api/public/export-jobs/{id}/retry`
+
+Retries a failed or canceled job with the original request payload while the original `export_token` remains valid.
 
 ### `GET /api/access-code/status`
 

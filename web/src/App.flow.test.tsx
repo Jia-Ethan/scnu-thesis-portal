@@ -93,13 +93,18 @@ describe("App business flow", () => {
   });
 
   it("exports docx and resets after success", async () => {
+    let jobPollCount = 0;
     const fetchMock = mockFetch((input, init) => {
       const url = String(input);
       if (url.includes("/api/public/precheck/text")) {
         return jsonResponse(samplePrecheck({ thesis: sampleThesis() }));
       }
-      if (url.includes("/api/public/exports/docx")) {
-        return jsonResponse({ export_id: "pub_1", download_url: "/api/public/exports/pub_1/download", report_url: "/api/public/exports/pub_1/report", expires_at: "2099-01-01T00:00:00" });
+      if (url.endsWith("/api/public/export-jobs/docx")) {
+        return jsonResponse({ job_id: "job_1", export_id: "pub_1", status: "running", progress: 46, message: "正在生成 Word 文件。", download_url: null, report_url: null, expires_at: "2099-01-01T00:00:00", error_code: null });
+      }
+      if (url.endsWith("/api/public/export-jobs/job_1")) {
+        jobPollCount += 1;
+        return jsonResponse({ job_id: "job_1", export_id: "pub_1", status: "done", progress: 100, message: "导出完成。", download_url: "/api/public/exports/pub_1/download", report_url: "/api/public/exports/pub_1/report", expires_at: "2099-01-01T00:00:00", error_code: null });
       }
       if (url.includes("/api/public/exports/pub_1/download")) {
         return jsonResponse({});
@@ -122,11 +127,12 @@ describe("App business flow", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "确认并导出" }));
 
-    expect(await screen.findByText("正在生成 Word 文件")).toBeInTheDocument();
+    expect(await screen.findByText(/正在生成 Word 文件/)).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "导出前结构预检" })).not.toBeInTheDocument());
     await waitFor(() => expect(screen.getByLabelText("论文正文输入框")).toHaveValue(""));
 
-    const exportCall = fetchMock.mock.calls.find(([input]) => String(input).includes("/api/public/exports/docx"));
+    expect(jobPollCount).toBeGreaterThan(0);
+    const exportCall = fetchMock.mock.calls.find(([input]) => String(input).includes("/api/public/export-jobs/docx"));
     expect(exportCall).toBeTruthy();
     const [, request] = exportCall as [RequestInfo | URL, RequestInit];
     const payload = JSON.parse(String(request.body));
@@ -171,8 +177,11 @@ describe("App business flow", () => {
       if (url.includes("/api/public/precheck/text")) {
         return jsonResponse(samplePrecheck({ thesis: sampleThesis() }));
       }
-      if (url.includes("/api/public/exports/docx")) {
+      if (url.endsWith("/api/public/export-jobs/docx")) {
         return exportDeferred.promise;
+      }
+      if (url.endsWith("/api/public/export-jobs/job_1")) {
+        return jsonResponse({ job_id: "job_1", export_id: "pub_1", status: "done", progress: 100, message: "导出完成。", download_url: "/api/public/exports/pub_1/download", report_url: "/api/public/exports/pub_1/report", expires_at: "2099-01-01T00:00:00", error_code: null });
       }
       if (url.includes("/api/public/exports/pub_1/download")) {
         return jsonResponse({});
@@ -198,11 +207,55 @@ describe("App business flow", () => {
     const clickSpy = vi.spyOn(input, "click");
 
     await waitFor(() => expect(uploadButton).toBeDisabled());
-    expect(await screen.findByText("正在生成 Word 文件")).toBeInTheDocument();
+    expect(await screen.findByText("正在创建导出任务。")).toBeInTheDocument();
     fireEvent.click(uploadButton);
     expect(clickSpy).not.toHaveBeenCalled();
 
-    exportDeferred.resolve(await jsonResponse({ export_id: "pub_1", download_url: "/api/public/exports/pub_1/download", report_url: "/api/public/exports/pub_1/report", expires_at: "2099-01-01T00:00:00" }));
+    exportDeferred.resolve(await jsonResponse({ job_id: "job_1", export_id: "pub_1", status: "done", progress: 100, message: "导出完成。", download_url: "/api/public/exports/pub_1/download", report_url: "/api/public/exports/pub_1/report", expires_at: "2099-01-01T00:00:00", error_code: null }));
     await waitFor(() => expect(screen.getByLabelText("论文正文输入框")).toHaveValue(""));
+  });
+
+  it("can cancel and retry an export job", async () => {
+    let createCount = 0;
+    mockFetch((input) => {
+      const url = String(input);
+      if (url.includes("/api/public/precheck/text")) {
+        return jsonResponse(samplePrecheck({ thesis: sampleThesis() }));
+      }
+      if (url.endsWith("/api/public/export-jobs/docx")) {
+        createCount += 1;
+        return jsonResponse({ job_id: `job_${createCount}`, export_id: `pub_${createCount}`, status: "running", progress: 32, message: "正在生成 Word 文件。", download_url: null, report_url: null, expires_at: "2099-01-01T00:00:00", error_code: null });
+      }
+      if (url.endsWith("/api/public/export-jobs/job_1/cancel")) {
+        return jsonResponse({ job_id: "job_1", export_id: "pub_1", status: "canceled", progress: 32, message: "导出已取消，可重新导出。", download_url: null, report_url: null, expires_at: "2099-01-01T00:00:00", error_code: "EXPORT_CANCELED" });
+      }
+      if (url.endsWith("/api/public/export-jobs/job_2")) {
+        return jsonResponse({ job_id: "job_2", export_id: "pub_2", status: "done", progress: 100, message: "导出完成。", download_url: "/api/public/exports/pub_2/download", report_url: "/api/public/exports/pub_2/report", expires_at: "2099-01-01T00:00:00", error_code: null });
+      }
+      if (url.includes("/api/public/exports/pub_2/download")) {
+        return jsonResponse({});
+      }
+      return jsonResponse(healthPayload);
+    });
+
+    Object.defineProperty(URL, "createObjectURL", { value: vi.fn(() => "blob:docx"), configurable: true });
+    Object.defineProperty(URL, "revokeObjectURL", { value: vi.fn(), configurable: true });
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
+
+    render(<App />);
+    fireEvent.change(screen.getByLabelText("论文正文输入框"), {
+      target: { value: "结构化映射示例论文\n\n摘要\n这是满足长度要求的摘要内容。".repeat(8) },
+    });
+    acceptPrivacy();
+    fireEvent.click(screen.getByRole("button", { name: "开始预检" }));
+    await screen.findByRole("dialog", { name: "导出前结构预检" });
+    fireEvent.click(screen.getByRole("button", { name: "确认并导出" }));
+
+    fireEvent.click(await screen.findByRole("button", { name: "取消导出" }));
+    expect(await screen.findByText("导出已取消，可重新导出。")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "重新导出" }));
+    await waitFor(() => expect(screen.getByLabelText("论文正文输入框")).toHaveValue(""));
+    expect(createCount).toBe(2);
   });
 });

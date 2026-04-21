@@ -9,13 +9,17 @@ type MinimalHomeProps = {
   selectedFile: File | null;
   phase: FlowPhase;
   exportProgress: number;
+  exportMessage?: string;
   error: InlineErrorState | null;
+  canRetryExport: boolean;
   privacyAccepted: boolean;
   turnstileToken: string;
   onTextChange: (value: string) => void;
   onUploadTrigger: () => boolean;
   onFileSelect: (file: File | null) => void;
   onSubmit: () => void;
+  onCancelExport: () => void;
+  onRetryExport: () => void;
   onClear: () => void;
   onPrivacyAcceptedChange: (value: boolean) => void;
   onTurnstileTokenChange: (value: string) => void;
@@ -65,18 +69,24 @@ export function MinimalHome(props: MinimalHomeProps) {
             selectedFile={props.selectedFile}
             phase={props.phase}
             exportProgress={props.exportProgress}
+            exportMessage={props.exportMessage}
             privacyAccepted={props.privacyAccepted}
             turnstileToken={props.turnstileToken}
             onTextChange={props.onTextChange}
             onUploadTrigger={props.onUploadTrigger}
             onFileSelect={props.onFileSelect}
             onSubmit={props.onSubmit}
+            onCancelExport={props.onCancelExport}
             onClear={props.onClear}
             onDragActiveChange={setIsDragActive}
             onPrivacyAcceptedChange={props.onPrivacyAcceptedChange}
             onTurnstileTokenChange={props.onTurnstileTokenChange}
           />
-          <InlineError message={props.error?.message ?? null} />
+          <InlineError
+            message={props.error?.message ?? null}
+            actionLabel={props.canRetryExport ? "重新导出" : undefined}
+            onAction={props.canRetryExport ? props.onRetryExport : undefined}
+          />
         </section>
       </section>
 

@@ -8,12 +8,14 @@ type HomeComposerProps = {
   selectedFile: File | null;
   phase: FlowPhase;
   exportProgress: number;
+  exportMessage?: string;
   privacyAccepted: boolean;
   turnstileToken: string;
   onTextChange: (value: string) => void;
   onUploadTrigger: () => boolean;
   onFileSelect: (file: File | null) => void;
   onSubmit: () => void;
+  onCancelExport: () => void;
   onClear: () => void;
   onDragActiveChange?: (active: boolean) => void;
   onPrivacyAcceptedChange: (value: boolean) => void;
@@ -44,12 +46,14 @@ export function HomeComposer({
   selectedFile,
   phase,
   exportProgress,
+  exportMessage,
   privacyAccepted,
   turnstileToken,
   onTextChange,
   onUploadTrigger,
   onFileSelect,
   onSubmit,
+  onCancelExport,
   onClear,
   onDragActiveChange,
   onPrivacyAcceptedChange,
@@ -220,7 +224,7 @@ export function HomeComposer({
 
         {phase === "exporting" ? (
           <div className="composer-progress">
-            <WaveExportProgress progress={exportProgress} />
+            <WaveExportProgress progress={exportProgress} message={exportMessage} onCancel={onCancelExport} />
           </div>
         ) : selectedFile ? (
           <div className="composer-file-pill" aria-label="当前已选文件">
