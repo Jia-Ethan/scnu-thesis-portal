@@ -1,20 +1,52 @@
 import type { NormalizedThesis, PrecheckIssue } from "../generated/contracts";
 import { ApiError } from "./api";
 
-export type FlowPhase = "idle" | "text_ready" | "file_ready" | "prechecking" | "preview_modal_open" | "exporting";
+export type FlowPhase =
+  | "idle"
+  | "requirement_ready"
+  | "file_ready"
+  | "ready_to_precheck"
+  | "analyzing"
+  | "issues_found"
+  | "ready_to_fix"
+  | "fixed"
+  | "ready_to_export"
+  | "exporting"
+  | "error";
 
 export type InlineErrorState = {
   message: string;
   code?: string;
 };
 
-export function inferPhase(rawText: string, selectedFile: File | null, busy: boolean, modalOpen: boolean, exporting: boolean): FlowPhase {
+export function inferPhase(
+  requirementText: string,
+  selectedFile: File | null,
+  busy: boolean,
+  hasPrecheck: boolean,
+  fixApplied: boolean,
+  exporting: boolean,
+  hasError = false,
+): FlowPhase {
   if (exporting) return "exporting";
-  if (modalOpen) return "preview_modal_open";
-  if (busy) return "prechecking";
+  if (busy) return "analyzing";
+  if (hasError) return "error";
+  if (fixApplied) return "ready_to_export";
+  if (hasPrecheck) return "issues_found";
+  if (requirementText.trim() && selectedFile) return "ready_to_precheck";
   if (selectedFile) return "file_ready";
-  if (rawText.trim()) return "text_ready";
+  if (requirementText.trim()) return "requirement_ready";
   return "idle";
+}
+
+export function validateRequirementText(requirementText: string): InlineErrorState | null {
+  if (!requirementText.trim()) {
+    return { message: "请先粘贴格式要求，并上传 .docx 论文文件。", code: "FIELD_MISSING" };
+  }
+  if (requirementText.length > 40_000) {
+    return { message: "格式要求超过 40,000 字，请先精简后再提交。", code: "TEXT_TOO_LONG" };
+  }
+  return null;
 }
 
 export function validateDocxFile(file: File | null): InlineErrorState | null {

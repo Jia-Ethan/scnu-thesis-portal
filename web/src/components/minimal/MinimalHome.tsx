@@ -1,21 +1,28 @@
 import { useRef } from "react";
 import type { FlowPhase, InlineErrorState } from "../../app/domain";
+import type { PrecheckResponse } from "../../generated/contracts";
 import { HeroAmbient } from "./HeroAmbient";
 import { HomeComposer } from "./HomeComposer";
 import { InlineError } from "./InlineError";
+import { PrecheckResultPanel } from "./PrecheckResultPanel";
 
 type MinimalHomeProps = {
-  rawText: string;
+  requirementText: string;
   selectedFile: File | null;
   phase: FlowPhase;
+  precheck: PrecheckResponse | null;
+  fixApplied: boolean;
   exportProgress: number;
   exportMessage?: string;
   error: InlineErrorState | null;
   canRetryExport: boolean;
-  onTextChange: (value: string) => void;
+  onRequirementChange: (value: string) => void;
+  onUseExampleRequirement: () => void;
   onUploadTrigger: () => boolean;
   onFileSelect: (file: File | null) => void;
-  onSubmit: () => void;
+  onPrecheck: () => void;
+  onApplyMockFix: () => void;
+  onExport: () => void;
   onCancelExport: () => void;
   onRetryExport: () => void;
   onClear: () => void;
@@ -26,31 +33,47 @@ export function MinimalHome(props: MinimalHomeProps) {
 
   return (
     <main className="formatter-page">
-      <section ref={heroRef} className="formatter-hero" aria-labelledby="formatter-title">
+      <nav className="portal-nav" aria-label="主导航">
+        <a className="portal-brand" href="#top" aria-label="Forma 首页">
+          Forma
+        </a>
+        <div className="portal-nav-links" aria-label="功能入口">
+          <a href="#/guide">Guide</a>
+          <a href="#requirements">Upload</a>
+          <a href="#preview">Preview</a>
+          <a href="#export">Export</a>
+        </div>
+      </nav>
+
+      <section id="top" ref={heroRef} className="formatter-hero" aria-labelledby="formatter-title">
         <HeroAmbient containerRef={heroRef} />
         <div className="formatter-hero-copy">
-          <p className="formatter-eyebrow">SCNU Thesis Formatter</p>
+          <p className="formatter-eyebrow">Forma</p>
           <h1 id="formatter-title" className="formatter-title">
-            论文格式，
-            <br />
-            安静归位。
+            Format your thesis with AI.
           </h1>
-          <p className="formatter-subtitle">上传 `.docx` 或粘贴正文，完成预检后导出规范化 Word。</p>
+          <p className="formatter-subtitle">粘贴格式要求，上传论文，让 Agent 完成预检、修复与导出。</p>
+          <div className="hero-actions">
+            <a className="primary-action" href="#requirements">
+              Start
+            </a>
+            <a className="secondary-action" href="#/guide">
+              View guide
+            </a>
+          </div>
         </div>
 
-        <section className="formatter-surface" aria-label="格式规范化工具">
+        <section id="requirements" className="formatter-surface" aria-label="格式规范化工具">
           <HomeComposer
-            rawText={props.rawText}
+            requirementText={props.requirementText}
             selectedFile={props.selectedFile}
             phase={props.phase}
-            exportProgress={props.exportProgress}
-            exportMessage={props.exportMessage}
-            onTextChange={props.onTextChange}
+            onRequirementChange={props.onRequirementChange}
+            onUseExampleRequirement={props.onUseExampleRequirement}
             onUploadTrigger={props.onUploadTrigger}
             onFileSelect={props.onFileSelect}
-            onSubmit={props.onSubmit}
-            onCancelExport={props.onCancelExport}
             onClear={props.onClear}
+            onPrecheck={props.onPrecheck}
           />
           <InlineError
             message={props.error?.message ?? null}
@@ -58,6 +81,19 @@ export function MinimalHome(props: MinimalHomeProps) {
             onAction={props.canRetryExport ? props.onRetryExport : undefined}
           />
         </section>
+
+        <div id="preview">
+          <PrecheckResultPanel
+            phase={props.phase}
+            precheck={props.precheck}
+            fixApplied={props.fixApplied}
+            exportProgress={props.exportProgress}
+            exportMessage={props.exportMessage}
+            onApplyMockFix={props.onApplyMockFix}
+            onExport={props.onExport}
+            onCancelExport={props.onCancelExport}
+          />
+        </div>
       </section>
     </main>
   );
