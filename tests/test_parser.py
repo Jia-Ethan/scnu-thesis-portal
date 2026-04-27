@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from docx import Document
+
 from backend.app.contracts import CapabilityFlags
 from backend.app.services.parse import normalize_text_input, parse_docx_file
 from backend.app.services.precheck import run_precheck
@@ -81,3 +83,52 @@ def test_docx_and_text_inputs_can_converge_to_same_semantics():
     assert [section.title for section in docx_thesis.body_sections] == [section.title for section in text_thesis.body_sections]
     assert [item.normalized_text for item in docx_thesis.references] == [item.normalized_text for item in text_thesis.references]
     assert docx_thesis.missing_sections == text_thesis.missing_sections
+
+
+def test_scnu_structure_rules_flag_real_world_front_matter_and_body_risks(tmp_path):
+    path = tmp_path / "problematic-thesis.docx"
+    document = Document()
+    for line in [
+        "华南师范大学",
+        "本科毕业论文",
+        "论文题目：叠滘龙舟非遗文旅消费群体画像与业态升级研究 作者：张三",
+        "指导教师：________________",
+        "学生姓名：________________",
+        "学号：________________",
+        "学院：__________________",
+        "专业：__________________",
+        "班级：__________________",
+        "毕业时间：________________",
+    ]:
+        document.add_paragraph(line)
+    document.add_heading("摘  要", level=1)
+    document.add_paragraph("关键词：__________________")
+    document.add_heading("Abstract", level=1)
+    document.add_paragraph("Keywords：__________________")
+    document.add_heading("目  录", level=1)
+    document.add_heading("1 宏观趋势：Z世代崛起重塑文旅消费", level=1)
+    document.add_paragraph("【摘要】真正的中文摘要被放进正文开头。" + "这是一个异常长段落。" * 90 + "[2] 图1 展示消费画像，表1 展示样本结构。")
+    document.add_heading("2 政策推进“旅游+”和“+旅游”", level=1)
+    document.add_paragraph("一、研究背景\n（一）研究目的\n3.1 层级混用\n有效样本16份，女性占比68.97%，需核对数据口径。")
+    document.add_heading("参考文献", level=1)
+    document.add_heading("附录", level=1)
+    document.add_heading("致谢", level=1)
+    document.save(path)
+
+    thesis = parse_docx_file(path, capabilities())
+    precheck = run_precheck(thesis)
+    codes = {item.code for item in precheck.issues}
+
+    assert "cover.advisor" in thesis.missing_sections
+    assert "ABSTRACT_CN_BLANK" in codes
+    assert "ABSTRACT_EN_BLANK" in codes
+    assert "TOC_EMPTY" in codes
+    assert "ABSTRACT_CN_MISPLACED" in codes
+    assert "CITATIONS_WITHOUT_REFERENCES" in codes
+    assert "HEADING_NUMBERING_MIXED" in codes
+    assert "LONG_PARAGRAPHS" in codes
+    assert "FIGURE_CAPTION_WITHOUT_OBJECT" in codes
+    assert "TABLE_CAPTION_WITHOUT_TABLE" in codes
+    assert "APPENDIX_EMPTY" in codes
+    assert "ACKNOWLEDGEMENTS_EMPTY" in codes
+    assert "DATA_CONSISTENCY_REVIEW" in codes

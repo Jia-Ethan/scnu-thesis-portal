@@ -15,6 +15,7 @@ from ..contracts import (
     BodySection,
     CapabilityFlags,
     CoverFields,
+    FormatRisk,
     NormalizedThesis,
     ReferenceItem,
     SourceFeatures,
@@ -59,6 +60,14 @@ MARKDOWN_HEADING = re.compile(r"^(#{1,4})\s+(.+)$")
 CHAPTER_HEADING = re.compile(r"^第[一二三四五六七八九十百千0-9]+章")
 NUMBERED_HEADING = re.compile(r"^(\d+(?:\.\d+){0,3})[\.、]?\s+(.+)$")
 INLINE_FIELD_SPLIT = re.compile(r"[：:]")
+PLACEHOLDER_VALUE = re.compile(r"^[\s_＿—–-]+$")
+INLINE_CITATION = re.compile(r"(?<!\w)[\［\[]\s*(\d{1,3})\s*[\］\]]")
+FIGURE_CAPTION = re.compile(r"(?:^|[\s。；;，,])图\s*\d+")
+TABLE_CAPTION = re.compile(r"(?:^|[\s。；;，,])表\s*\d+")
+CHINESE_HEADING_PREFIX = re.compile(r"^[一二三四五六七八九十]+[、.．]\s*")
+PAREN_HEADING_PREFIX = re.compile(r"^[（(][一二三四五六七八九十]+[）)]\s*")
+ARABIC_SPACE_HEADING_PREFIX = re.compile(r"^\d{1,2}\s+\S+")
+ARABIC_DOT_HEADING_PREFIX = re.compile(r"^\d+(?:\.\d+)+\s*\S+")
 
 
 @dataclass
@@ -82,6 +91,38 @@ class SectionDraft:
 
 def normalize_compact_text(value: str) -> str:
     return re.sub(r"[\s:：\-\._·•\(\)（）]+", "", (value or "")).strip().lower()
+
+
+def compact_text(value: str) -> str:
+    return re.sub(r"\s+", "", value or "")
+
+
+def is_placeholder_value(value: str) -> bool:
+    compact = normalize_compact_text(value)
+    return not compact or bool(PLACEHOLDER_VALUE.fullmatch(value.strip())) or compact in {"填写", "待填写", "无", "空"}
+
+
+def make_format_risk(code: str, severity: str, message: str, source: str, block_id: str | None = None) -> FormatRisk:
+    return FormatRisk(
+        id=f"{code.lower()}-{abs(hash((code, message, source, block_id))) % 100000}",
+        code=code,
+        severity=severity,  # type: ignore[arg-type]
+        message=message,
+        source=source,
+        block_id=block_id,
+    )
+
+
+def dedupe_format_risks(risks: list[FormatRisk]) -> list[FormatRisk]:
+    seen: set[tuple[str, str, str | None]] = set()
+    result: list[FormatRisk] = []
+    for risk in risks:
+        key = (risk.code, risk.message, risk.block_id)
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(risk)
+    return result
 
 
 def split_keywords(text: str, english: bool) -> tuple[str, list[str]]:
@@ -127,6 +168,49 @@ def make_source_features_docx(path: Path, document: Document) -> SourceFeatures:
         field_count=document_xml.count("<w:instrText"),
         rich_run_count=sum(1 for paragraph in document.paragraphs if len([run for run in paragraph.runs if run.text.strip()]) > 1),
     )
+
+
+def inspect_docx_format_risks(path: Path, document: Document, raw_blocks: list[RawBlock]) -> list[FormatRisk]:
+    risks: list[FormatRisk] = []
+    all_text = "\n".join(block.text for block in raw_blocks)
+
+    for section_index, section in enumerate(document.sections):
+        margins = {
+            "上": section.top_margin.cm if section.top_margin else None,
+            "下": section.bottom_margin.cm if section.bottom_margin else None,
+            "左": section.left_margin.cm if section.left_margin else None,
+            "右": section.right_margin.cm if section.right_margin else None,
+        }
+        expected = {"上": 2.5, "下": 2.5, "左": 2.0, "右": 2.0}
+        mismatched = [f"{name}{value:.2f}cm" for name, value in margins.items() if value is not None and abs(value - expected[name]) > 0.15]
+        if mismatched:
+            risks.append(
+                make_format_risk(
+                    "PAGE_MARGINS_DEVIATE",
+                    "warning",
+                    f"第 {section_index + 1} 节页边距与学校建议值不一致：{', '.join(mismatched)}；建议统一为上/下 2.5cm、左/右 2cm。",
+                    "scnu-undergraduate-layout",
+                )
+            )
+
+    header_texts = ["".join(p.text.strip() for p in section.header.paragraphs if p.text.strip()) for section in document.sections]
+    if not any(header_texts):
+        risks.append(make_format_risk("HEADER_MISSING", "warning", "未识别到页眉内容；学校要求页眉居中显示论文题目。", "scnu-undergraduate-layout"))
+
+    try:
+        with ZipFile(path) as archive:
+            footer_xml = "\n".join(archive.read(name).decode("utf-8", errors="ignore") for name in archive.namelist() if name.startswith("word/footer") and name.endswith(".xml"))
+    except Exception:
+        footer_xml = ""
+    if "PAGE" not in footer_xml and "NUMPAGES" not in footer_xml:
+        risks.append(make_format_risk("PAGE_NUMBER_MISSING", "warning", "未识别到页脚页码域；学校要求页脚页码居中，格式为 1、2、3……。", "scnu-undergraduate-layout"))
+
+    if FIGURE_CAPTION.search(all_text) and len(document.inline_shapes) == 0:
+        risks.append(make_format_risk("FIGURE_CAPTION_WITHOUT_OBJECT", "warning", "正文出现图编号或图题，但未检测到实际图片对象；请核对图题、图片和正文引用是否对应。", "scnu-undergraduate-figures"))
+    if TABLE_CAPTION.search(all_text) and len(document.tables) == 0:
+        risks.append(make_format_risk("TABLE_CAPTION_WITHOUT_TABLE", "warning", "正文出现表编号或表题，但未检测到实际表格；请核对表题、表格和正文引用是否对应。", "scnu-undergraduate-figures"))
+
+    return risks
 
 
 def build_source_features_text() -> SourceFeatures:
@@ -248,6 +332,8 @@ def extract_cover(front_lines: list[str]) -> tuple[CoverFields, set[int]]:
             extra_consumed = {index}
             if not value:
                 value, extra_consumed = consume_following_lines(front_lines, index, allow_multiline=field == "title")
+            if is_placeholder_value(value):
+                value = ""
             if field == "title" and value and not cover.title:
                 cover.title = value
             elif field == "advisor" and value and not cover.advisor:
@@ -278,7 +364,7 @@ def extract_cover(front_lines: list[str]) -> tuple[CoverFields, set[int]]:
     return cover, consumed
 
 
-def extract_raw_blocks_from_docx(path: Path) -> tuple[list[RawBlock], SourceFeatures]:
+def extract_raw_blocks_from_docx(path: Path) -> tuple[list[RawBlock], SourceFeatures, list[FormatRisk]]:
     try:
         document = Document(path)
     except Exception as exc:  # pragma: no cover
@@ -293,12 +379,12 @@ def extract_raw_blocks_from_docx(path: Path) -> tuple[list[RawBlock], SourceFeat
         for index, paragraph in enumerate(document.paragraphs)
         if paragraph.text.strip()
     ]
-    return raw_blocks, make_source_features_docx(path, document)
+    return raw_blocks, make_source_features_docx(path, document), inspect_docx_format_risks(path, document, raw_blocks)
 
 
-def extract_raw_blocks_from_text(text: str) -> tuple[list[RawBlock], SourceFeatures]:
+def extract_raw_blocks_from_text(text: str) -> tuple[list[RawBlock], SourceFeatures, list[FormatRisk]]:
     raw_blocks = [RawBlock(text=line, style_name=None, source_index=index) for index, line in enumerate(text.splitlines()) if line.strip()]
-    return raw_blocks, build_source_features_text()
+    return raw_blocks, build_source_features_text(), []
 
 
 def body_title_for_missing_input() -> str:
@@ -310,6 +396,7 @@ def normalized_from_raw_blocks(
     source_type: str,
     capabilities: CapabilityFlags,
     source_features: SourceFeatures,
+    initial_format_risks: list[FormatRisk] | None = None,
 ) -> NormalizedThesis:
     if not raw_blocks:
         raise AppError("CONTENT_EMPTY", "文档中没有可用文本内容。", status_code=400)
@@ -353,6 +440,7 @@ def normalized_from_raw_blocks(
 
     flush_current()
 
+    format_risks: list[FormatRisk] = list(initial_format_risks or [])
     abstract_cn = SummarySection()
     abstract_en = SummarySection()
     body_sections: list[BodySection] = []
@@ -387,6 +475,8 @@ def normalized_from_raw_blocks(
         elif draft.kind == "notes":
             notes = "\n".join(item for item in [notes, content] if item).strip()
         elif draft.kind == "toc":
+            if not compact_text(content):
+                format_risks.append(make_format_risk("TOC_EMPTY", "warning", "已识别到“目录”标题，但目录内容为空或未生成页码；建议自动生成或更新目录。", "scnu-undergraduate-structure"))
             continue
         else:
             body_sections.append(
@@ -414,6 +504,56 @@ def normalized_from_raw_blocks(
 
     if not body_sections:
         raise AppError("CONTENT_EMPTY", "未识别到可映射为论文正文的内容。", status_code=400)
+
+    full_body_text = "\n".join([section.title + "\n" + section.content for section in body_sections])
+    if ("【摘要】" in full_body_text or "摘要】" in full_body_text) and not abstract_cn.content.strip():
+        format_risks.append(make_format_risk("ABSTRACT_CN_MISPLACED", "warning", "疑似中文摘要内容被放入正文开头；学校要求中文摘要单独位于正文前。", "scnu-undergraduate-structure"))
+
+    citation_numbers = sorted({int(item) for item in INLINE_CITATION.findall(full_body_text)})
+    if citation_numbers and not references:
+        format_risks.append(
+            make_format_risk(
+                "CITATIONS_WITHOUT_REFERENCES",
+                "warning",
+                f"正文检测到 {len(citation_numbers)} 个引用标记（如 [{citation_numbers[0]}]），但文末参考文献为空；需要补齐引用对应条目。",
+                "scnu-undergraduate-references",
+            )
+        )
+
+    heading_samples = [section.title.strip() for section in body_sections if section.title.strip()]
+    heading_text_samples = heading_samples + [line.strip() for section in body_sections for line in section.content.splitlines() if line.strip()]
+    numbering_styles = set()
+    for text in heading_text_samples:
+        if ARABIC_DOT_HEADING_PREFIX.match(text):
+            numbering_styles.add("arabic-dot")
+        elif ARABIC_SPACE_HEADING_PREFIX.match(text):
+            numbering_styles.add("arabic-space")
+        elif CHINESE_HEADING_PREFIX.match(text):
+            numbering_styles.add("chinese")
+        elif PAREN_HEADING_PREFIX.match(text):
+            numbering_styles.add("paren-chinese")
+    if len(numbering_styles) >= 2:
+        format_risks.append(make_format_risk("HEADING_NUMBERING_MIXED", "warning", "正文混用了多套标题编号体系；建议统一为 1、1.1、1.1.1 或学校允许的同一套层级格式。", "scnu-undergraduate-headings"))
+    if len(body_sections) >= 8 and len({section.level for section in body_sections}) == 1:
+        format_risks.append(make_format_risk("HEADING_LEVELS_FLAT", "warning", "正文识别到大量同级标题，缺少二级/三级层级；请检查标题样式和编号层次是否被错误扁平化。", "scnu-undergraduate-headings"))
+    long_heading_count = sum(len(compact_text(title)) > 80 for title in heading_samples)
+    if long_heading_count:
+        format_risks.append(make_format_risk("HEADING_BODY_MIXED", "warning", f"检测到 {long_heading_count} 个标题异常过长，疑似标题与正文粘连在同一段；建议拆分为独立标题和正文段落。", "scnu-undergraduate-headings"))
+
+    long_paragraph_count = sum(1 for section in body_sections for line in section.content.splitlines() if len(compact_text(line)) > 650)
+    if long_paragraph_count:
+        format_risks.append(make_format_risk("LONG_PARAGRAPHS", "warning", f"检测到 {long_paragraph_count} 个异常长段落；建议检查是否存在正文粘连、标题未单独成行或段落未拆分。", "scnu-undergraduate-paragraphs"))
+
+    empty_appendix_titles = [item.title for item in appendices if not item.content.strip()]
+    if empty_appendix_titles:
+        format_risks.append(make_format_risk("APPENDIX_EMPTY", "warning", "已识别到附录标题但内容为空；如无附录应删除该章节，如需保留应补充内容。", "scnu-undergraduate-structure"))
+    if any(draft.kind == "acknowledgements" and not compact_text(draft.content) for draft in drafts):
+        format_risks.append(make_format_risk("ACKNOWLEDGEMENTS_EMPTY", "warning", "已识别到致谢标题但内容为空；需要补写或删除空章节。", "scnu-undergraduate-structure"))
+
+    if re.search(r"\d+(?:\.\d+)?%", full_body_text) or re.search(r"\d+\s*份", full_body_text):
+        format_risks.append(make_format_risk("DATA_CONSISTENCY_REVIEW", "info", "正文包含百分比、样本量或统计结果；系统无法判断结论对错，但建议核对样本量、图表和正文描述是否一致。", "scnu-undergraduate-data"))
+    if re.search(r"[A-Za-z]\.", full_body_text) or "“" in full_body_text or "”" in full_body_text:
+        format_risks.append(make_format_risk("TEXT_STYLE_REVIEW", "info", "检测到英文标点、引号或论文体表达可能需要人工润色；该项优先级低于结构与排版问题。", "scnu-undergraduate-language"))
 
     missing_sections: list[str] = []
     for field in ["title", "advisor", "student_name", "student_id", "department", "major", "class_name", "graduation_time"]:
@@ -469,19 +609,20 @@ def normalized_from_raw_blocks(
         missing_sections=missing_sections,
         source_features=source_features,
         capabilities=build_capabilities(capabilities),
+        format_risks=dedupe_format_risks(format_risks),
     )
 
 
 def parse_docx_file(path: Path, capabilities: CapabilityFlags) -> NormalizedThesis:
     if path.suffix.lower() != ".docx":
         raise AppError("UNSUPPORTED_FILE_TYPE", "仅支持上传 .docx 文件。", status_code=400)
-    raw_blocks, source_features = extract_raw_blocks_from_docx(path)
-    return normalized_from_raw_blocks(raw_blocks, "docx", capabilities, source_features)
+    raw_blocks, source_features, format_risks = extract_raw_blocks_from_docx(path)
+    return normalized_from_raw_blocks(raw_blocks, "docx", capabilities, source_features, format_risks)
 
 
 def normalize_text_input(text: str, capabilities: CapabilityFlags) -> NormalizedThesis:
-    raw_blocks, source_features = extract_raw_blocks_from_text(text)
-    return normalized_from_raw_blocks(raw_blocks, "text", capabilities, source_features)
+    raw_blocks, source_features, format_risks = extract_raw_blocks_from_text(text)
+    return normalized_from_raw_blocks(raw_blocks, "text", capabilities, source_features, format_risks)
 
 
 # ─── Story2Paper Schema Mapper ─────────────────────────────────────────────────

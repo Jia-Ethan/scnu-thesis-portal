@@ -53,6 +53,46 @@ def issue(issue_id: str, code: str, severity: str, block: str, title: str, messa
     )
 
 
+def block_for_format_risk(code: str) -> str:
+    if code.startswith("COVER") or code in {"HEADER_MISSING", "PAGE_NUMBER_MISSING", "PAGE_MARGINS_DEVIATE"}:
+        return "cover"
+    if code.startswith("ABSTRACT_CN"):
+        return "abstract_cn"
+    if code.startswith("ABSTRACT_EN"):
+        return "abstract_en"
+    if code.startswith("REFERENCE") or "CITATION" in code:
+        return "references"
+    if code.startswith("APPENDIX"):
+        return "appendices"
+    if code.startswith("ACKNOWLEDGEMENTS"):
+        return "acknowledgements"
+    if code.startswith("FIGURE") or code.startswith("TABLE"):
+        return "complex_elements"
+    return "body"
+
+
+def title_for_format_risk(code: str) -> str:
+    titles = {
+        "TOC_EMPTY": "目录为空或未更新",
+        "ABSTRACT_CN_MISPLACED": "中文摘要位置错误",
+        "CITATIONS_WITHOUT_REFERENCES": "正文引用缺少文末文献",
+        "HEADING_NUMBERING_MIXED": "标题编号体系混乱",
+        "HEADING_LEVELS_FLAT": "标题层级被扁平化",
+        "HEADING_BODY_MIXED": "标题与正文粘连",
+        "LONG_PARAGRAPHS": "正文段落异常过长",
+        "APPENDIX_EMPTY": "附录为空",
+        "ACKNOWLEDGEMENTS_EMPTY": "致谢为空",
+        "FIGURE_CAPTION_WITHOUT_OBJECT": "图题缺少图片对象",
+        "TABLE_CAPTION_WITHOUT_TABLE": "表题缺少表格对象",
+        "HEADER_MISSING": "页眉缺失",
+        "PAGE_NUMBER_MISSING": "页码缺失",
+        "PAGE_MARGINS_DEVIATE": "页面设置偏离规范",
+        "DATA_CONSISTENCY_REVIEW": "数据口径需复核",
+        "TEXT_STYLE_REVIEW": "文字规范需人工复核",
+    }
+    return titles.get(code, "格式风险")
+
+
 def block_preview(thesis: NormalizedThesis, block_key: str) -> str:
     if block_key == "cover":
         filled = [label for field, label in COVER_FIELD_LABELS if getattr(thesis.cover, field).strip()]
@@ -107,6 +147,18 @@ def block_preview(thesis: NormalizedThesis, block_key: str) -> str:
 
 def run_precheck(thesis: NormalizedThesis) -> PrecheckResponse:
     issues: list[PrecheckIssue] = []
+
+    for risk in thesis.format_risks:
+        issues.append(
+            issue(
+                f"format-{risk.id}",
+                risk.code,
+                risk.severity,
+                block_for_format_risk(risk.code),
+                title_for_format_risk(risk.code),
+                risk.message,
+            )
+        )
 
     body_text_length = sum(len(compact_text(section.content)) for section in thesis.body_sections)
     if not thesis.body_sections or body_text_length == 0:
