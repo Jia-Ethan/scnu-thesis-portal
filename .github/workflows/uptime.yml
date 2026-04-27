@@ -9,23 +9,26 @@ jobs:
   smoke:
     runs-on: ubuntu-latest
     env:
-      SCNU_PUBLIC_BASE_URL: ${{ secrets.SCNU_PUBLIC_BASE_URL }}
+      FORMA_PUBLIC_BASE_URL: ${{ secrets.FORMA_PUBLIC_BASE_URL }}
+      LEGACY_SCNU_PUBLIC_BASE_URL: ${{ secrets.SCNU_PUBLIC_BASE_URL }}
     steps:
       - name: Check configured URL
         run: |
-          if [ -z "$SCNU_PUBLIC_BASE_URL" ]; then
-            echo "SCNU_PUBLIC_BASE_URL is not configured; skipping uptime smoke."
+          PUBLIC_BASE_URL="${FORMA_PUBLIC_BASE_URL:-$LEGACY_SCNU_PUBLIC_BASE_URL}"
+          if [ -z "$PUBLIC_BASE_URL" ]; then
+            echo "FORMA_PUBLIC_BASE_URL is not configured; skipping uptime smoke."
             exit 0
           fi
+          echo "PUBLIC_BASE_URL=$PUBLIC_BASE_URL" >> "$GITHUB_ENV"
 
       - name: Check homepage
-        if: env.SCNU_PUBLIC_BASE_URL != ''
-        run: curl -fsSL "$SCNU_PUBLIC_BASE_URL/" | grep -E "SCNU Thesis|华师本科论文"
+        if: env.PUBLIC_BASE_URL != ''
+        run: curl -fsSL "$PUBLIC_BASE_URL/" | grep -E "Forma|Format your thesis with AI"
 
       - name: Check health
-        if: env.SCNU_PUBLIC_BASE_URL != ''
-        run: curl -fsSL "$SCNU_PUBLIC_BASE_URL/api/health" | grep '"ok":true'
+        if: env.PUBLIC_BASE_URL != ''
+        run: curl -fsSL "$PUBLIC_BASE_URL/api/health" | grep '"ok":true'
 
       - name: Check Workbench demo bundle
-        if: env.SCNU_PUBLIC_BASE_URL != ''
-        run: curl -fsSL "$SCNU_PUBLIC_BASE_URL/#/workbench-demo" | grep -E "SCNU Thesis|华师本科论文"
+        if: env.PUBLIC_BASE_URL != ''
+        run: curl -fsSL "$PUBLIC_BASE_URL/#/workbench-demo" | grep -E "Forma|Format your thesis with AI"

@@ -1,14 +1,22 @@
-# SCNU Thesis Agent Workbench
+# Forma
 
-SCNU Thesis Agent Workbench is an unofficial tool for SCNU undergraduate thesis format precheck, proposal review, version tracking, and Word export.
+Forma is an AI thesis formatting entry: paste formatting requirements, upload a thesis file, then let an Agent-driven flow precheck, prepare fixes, and export a Word document.
 
-It is not a thesis-writing service and not an official university system. The public entry only supports existing `.docx` or existing thesis text precheck and normalized `.docx` export. Remote AI providers are disabled on the public site.
+It is not a thesis-writing service and not an official university system. The public entry focuses on existing `.docx` files or existing thesis text, visible precheck results, and normalized `.docx` export. Remote AI providers are disabled on the public site by default.
 
-## Production Direction
+## Product Direction
 
-The primary production site should run on a mainland China cloud server with a custom domain, ICP filing, Docker Compose, Caddy HTTPS, FastAPI, Postgres, and local temporary export storage.
+Forma is moving from a single-school thesis portal toward a general thesis formatting platform. The SCNU undergraduate export implementation remains in the repository as a specialized rule profile and legacy verification baseline, but it is no longer the public product identity.
 
-Vercel is kept only as a static preview or mirror. It should not host the stateful FastAPI Workbench backend.
+The intended path is:
+
+1. Paste school, faculty, journal, or advisor formatting requirements.
+2. Upload a `.docx` thesis file.
+3. Review grouped format and structure issues.
+4. Confirm candidate fixes.
+5. Export a Word document.
+
+Requirement parsing, automatic format repair, and diff reports are still prepared as integration points for a future formatting Agent / ruleset API.
 
 ## Local Development
 
@@ -18,6 +26,12 @@ npm install --prefix web
 uv run uvicorn backend.app.main:app --reload --port 8000
 VITE_API_BASE_URL=http://127.0.0.1:8000 npm run dev --prefix web
 ```
+
+Open:
+
+- Forma: `http://127.0.0.1:5173/`
+- Guide: `http://127.0.0.1:5173/#/guide`
+- Workbench demo: `http://127.0.0.1:5173/#/workbench-demo`
 
 ## Verification
 

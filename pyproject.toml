@@ -1,7 +1,7 @@
 [project]
-name = "scnu-thesis-portal"
+name = "forma"
 version = "0.2.0"
-description = "Minimal SCNU undergraduate thesis formatter with precheck and Word export"
+description = "AI thesis formatting platform with precheck, repair flow, and Word export"
 requires-python = ">=3.12"
 dependencies = [
   "fastapi>=0.115,<1.0",

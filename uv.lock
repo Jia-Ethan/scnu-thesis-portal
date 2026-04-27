@@ -1971,7 +1971,7 @@ wheels = [
 ]
 
 [[package]]
-name = "scnu-thesis-portal"
+name = "forma"
 version = "0.2.0"
 source = { virtual = "." }
 dependencies = [
