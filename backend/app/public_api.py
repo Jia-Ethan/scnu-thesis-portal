@@ -29,6 +29,7 @@ from .config import (
 )
 from .contracts import CapabilityFlags, NormalizedThesis, PrecheckResponse
 from .errors import AppError
+from .http_headers import attachment_disposition
 from .security import export_token_for_digest, secret_key, thesis_digest, verify_export_token
 from .services.export import export_docx
 from .services.parse import normalize_text_input, parse_docx_file
@@ -294,7 +295,11 @@ def retry_public_export_job(job_id: str) -> PublicExportJobResponse:
 def download_public_export(export_id: str) -> Response:
     meta = _read_valid_meta(export_id)
     payload = storage.get_bytes(meta["docx_key"])
-    return Response(content=payload, media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document", headers={"Content-Disposition": f'attachment; filename="{meta["filename"]}"'})
+    return Response(
+        content=payload,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": attachment_disposition(meta["filename"])},
+    )
 
 
 @router.get("/exports/{export_id}/report")

@@ -9,6 +9,8 @@ from datetime import UTC, datetime, timedelta
 from fastapi.testclient import TestClient
 
 from backend.app.main import app
+from backend.app.contracts import NormalizedThesis
+from backend.app.security import export_token_for_digest, thesis_digest
 from backend.app.storage import storage
 from backend.app.worker import cleanup_public_export_jobs, cleanup_public_exports
 
@@ -227,6 +229,26 @@ def test_public_export_job_completes_and_serves_download():
         download = client.get(job_payload["download_url"])
         assert download.status_code == 200
         assert download.headers["content-type"] == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        assert "filename*=UTF-8''" in download.headers["content-disposition"]
+
+
+def test_public_export_download_supports_non_ascii_filename():
+    payload = sample_payload()
+    payload["cover"]["title"] = "中文论文标题"
+    thesis = NormalizedThesis.model_validate(payload)
+    expires_at = int((datetime.now(UTC) + timedelta(minutes=30)).timestamp())
+    export_token = export_token_for_digest(thesis_digest(thesis.model_dump_json()), expires_at)
+    with TestClient(app) as client:
+        export = client.post(
+            "/api/public/exports/docx",
+            json={"thesis": payload, "export_token": export_token},
+        ).json()
+
+        download = client.get(export["download_url"])
+        assert download.status_code == 200
+        disposition = download.headers["content-disposition"]
+        assert 'filename="Forma-export.docx"' in disposition
+        assert "%E4%B8%AD%E6%96%87" in disposition
 
 
 def test_public_export_job_can_be_canceled(monkeypatch):

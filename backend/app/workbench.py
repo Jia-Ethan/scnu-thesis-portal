@@ -22,6 +22,7 @@ from .contracts import CapabilityFlags, NormalizedThesis
 from .config import ACCESS_CODE_COOKIE_NAME, APP_ENV, PUBLIC_EXPORT_RETENTION_SECONDS, access_code, using_insecure_local_secret
 from .database import get_db
 from .errors import AppError
+from .http_headers import attachment_disposition
 from .models import (
     AgentEvent,
     AgentRun,
@@ -594,7 +595,7 @@ def download_export(export_id: str, db: Session = Depends(get_db)) -> Response:
     if not row or row.deleted_at is not None or (row.expires_at and row.expires_at < now) or not row.storage_key or not storage.exists(row.storage_key):
         raise AppError("EXPORT_NOT_FOUND", "导出文件不存在或已删除。", status_code=404)
     payload = storage.get_bytes(row.storage_key)
-    return Response(content=payload, media_type=_media_type_for_export(row), headers={"Content-Disposition": f'attachment; filename="{row.filename}"'})
+    return Response(content=payload, media_type=_media_type_for_export(row), headers={"Content-Disposition": attachment_disposition(row.filename)})
 
 
 @router.get("/providers")
