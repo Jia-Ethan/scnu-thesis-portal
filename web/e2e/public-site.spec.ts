@@ -15,17 +15,17 @@ test("public site and demo are reachable", async ({ page }) => {
   });
 
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "华师本科论文格式合规与版本工作台" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "English" })).toBeVisible();
-  await expect(page.getByPlaceholder("粘贴已有论文正文进行格式预检")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Format your thesis with AI." })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Forma 首页" })).toBeVisible();
+  await expect(page.getByLabel("论文格式要求输入框")).toBeVisible();
+  await expect(page.getByRole("button", { name: "上传 .docx 文件" })).toBeVisible();
+  await expect(page.getByText("Ready when your thesis is.")).toBeVisible();
 
-  await page.getByRole("link", { name: "English" }).click();
-  await expect(page.getByRole("heading", { name: "SCNU undergraduate thesis formatting and export workbench" })).toBeVisible();
+  await page.getByRole("link", { name: "Guide", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Use Forma with a clear boundary." })).toBeVisible();
+  await expect(page.getByText("Supported files")).toBeVisible();
 
   await page.goto("/#/workbench-demo");
-  await expect(page.getByRole("heading", { name: "SCNU Thesis Agent Workbench Demo" })).toBeVisible();
-  await page.getByRole("button", { name: "模拟导出" }).click();
-  await expect(page.getByText("demo-export-4.docx")).toBeVisible();
-  await page.getByRole("button", { name: "重置 demo" }).click();
-  await expect(page.getByText("demo-export-4.docx")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Format your thesis with AI." })).toBeVisible();
+  await expect(page.getByText("SCNU Thesis Agent Workbench Demo")).toHaveCount(0);
 });

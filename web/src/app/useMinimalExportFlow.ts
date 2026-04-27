@@ -9,26 +9,23 @@ import {
   getPublicExportJob,
   getHealth,
   publicPrecheckDocx,
-  publicPrecheckText,
   type PublicExportJobResponse,
 } from "./api";
-import { exportFilename, inferPhase, mapApiError, validateDocxFile, validateTextInput, type FlowPhase, type InlineErrorState } from "./domain";
+import { exportFilename, inferPhase, mapApiError, validateDocxFile, validateRequirementText, type FlowPhase, type InlineErrorState } from "./domain";
 
 const EXPORT_JOB_POLL_INTERVAL_MS = typeof navigator !== "undefined" && /jsdom/i.test(navigator.userAgent) ? 20 : 700;
 
 export function useMinimalExportFlow() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [rawText, setRawText] = useState("");
+  const [requirementText, setRequirementText] = useState("");
   const [busy, setBusy] = useState(false);
-  const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [precheck, setPrecheck] = useState<PrecheckResponse | null>(null);
+  const [fixApplied, setFixApplied] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
   const [exportMessage, setExportMessage] = useState("");
   const [inlineError, setInlineError] = useState<InlineErrorState | null>(null);
-  const [privacyAccepted, setPrivacyAccepted] = useState(false);
-  const [turnstileToken, setTurnstileToken] = useState("");
   const exportJobIdRef = useRef<string | null>(null);
   const cancelRequestedRef = useRef(false);
 
@@ -37,51 +34,43 @@ export function useMinimalExportFlow() {
       .then((response) => {
         setHealth(response);
       })
-      .catch((error) => setInlineError(mapApiError(error instanceof ApiError ? error : new ApiError("健康检查失败", "NETWORK_ERROR"))));
+      .catch(() => {
+        setHealth(null);
+      });
   }, []);
 
   const phase: FlowPhase = useMemo(
-    () => inferPhase(rawText, selectedFile, busy, previewModalOpen, exporting),
-    [busy, exporting, previewModalOpen, rawText, selectedFile],
+    () => inferPhase(requirementText, selectedFile, busy, Boolean(precheck), fixApplied, exporting, Boolean(inlineError)),
+    [busy, exporting, fixApplied, inlineError, precheck, requirementText, selectedFile],
   );
 
   function clearAll() {
     setSelectedFile(null);
-    setRawText("");
+    setRequirementText("");
     setBusy(false);
-    setPreviewModalOpen(false);
     setPrecheck(null);
+    setFixApplied(false);
     setExporting(false);
     setExportProgress(0);
     setExportMessage("");
     setInlineError(null);
-    setPrivacyAccepted(false);
-    setTurnstileToken("");
     exportJobIdRef.current = null;
     cancelRequestedRef.current = false;
   }
 
   function resetResult() {
     if (precheck) setPrecheck(null);
-    if (previewModalOpen) setPreviewModalOpen(false);
+    if (fixApplied) setFixApplied(false);
   }
 
   function handleUploadTrigger() {
     if (busy || exporting) return false;
-    if (rawText.trim()) {
-      setInlineError({ message: "请先清空当前输入，再切换输入方式。", code: "SOURCE_CONFLICT" });
-      return false;
-    }
     setInlineError(null);
     return true;
   }
 
   function handleFileSelect(file: File | null) {
     if (busy || exporting) {
-      return;
-    }
-    if (rawText.trim()) {
-      setInlineError({ message: "请先清空当前输入，再切换输入方式。", code: "SOURCE_CONFLICT" });
       return;
     }
     resetResult();
@@ -95,35 +84,34 @@ export function useMinimalExportFlow() {
     setSelectedFile(file);
   }
 
-  function handleTextChange(value: string) {
-    if (selectedFile && value.trim()) {
-      setInlineError({ message: "请先清空当前输入，再切换输入方式。", code: "SOURCE_CONFLICT" });
-      return;
-    }
+  function handleRequirementChange(value: string) {
     resetResult();
     setInlineError(null);
-    setRawText(value);
+    setRequirementText(value);
+  }
+
+  function handleUseExampleRequirement() {
+    handleRequirementChange(
+      "本科毕业论文应包含封面、中文摘要、英文摘要、目录、正文、参考文献、附录与致谢。中文摘要不少于 300 字，关键词 3-5 个；正文标题层级清晰；参考文献按学校规范排列；全文使用学校或学院发布的字体、字号、页边距与行距要求。",
+    );
   }
 
   async function handlePrecheck() {
     setInlineError(null);
     resetResult();
 
-    const validation = selectedFile ? validateDocxFile(selectedFile) : validateTextInput(rawText);
+    const validation = validateRequirementText(requirementText) || validateDocxFile(selectedFile);
     if (validation) {
       setInlineError(validation);
-      return;
-    }
-    if (!privacyAccepted) {
-      setInlineError({ message: "请先确认隐私说明后再继续。", code: "PRIVACY_CONFIRMATION_REQUIRED" });
       return;
     }
 
     setBusy(true);
     try {
-      const response = selectedFile ? await publicPrecheckDocx(selectedFile, privacyAccepted, turnstileToken) : await publicPrecheckText(rawText, privacyAccepted, turnstileToken);
+      // 当前公开 API 尚未接收格式要求文本；这里先完成前端流程，后续可把 requirementText
+      // 传给真实 Agent / ruleset endpoint。
+      const response = await publicPrecheckDocx(selectedFile as File, true, "");
       setPrecheck(response);
-      setPreviewModalOpen(true);
     } catch (error) {
       setInlineError(mapApiError(error instanceof ApiError ? error : new ApiError("预检失败", "PARSE_FAILED")));
     } finally {
@@ -131,8 +119,13 @@ export function useMinimalExportFlow() {
     }
   }
 
-  function handleCancelPreview() {
-    setPreviewModalOpen(false);
+  function handleApplyMockFix() {
+    if (!precheck) {
+      setInlineError({ message: "请先完成预检后再修复。", code: "FIELD_MISSING" });
+      return;
+    }
+    setInlineError(null);
+    setFixApplied(true);
   }
 
   function syncExportJob(job: PublicExportJobResponse) {
@@ -145,13 +138,12 @@ export function useMinimalExportFlow() {
   }
 
   async function handleConfirmExport() {
-    if (!precheck?.summary.can_confirm) {
-      setInlineError({ message: precheck?.summary.blocking_message || "预检仍存在阻塞项，暂时无法导出。", code: "FIELD_MISSING" });
+    if (!precheck) {
+      setInlineError({ message: "请先完成预检后再导出。", code: "FIELD_MISSING" });
       return;
     }
 
     setInlineError(null);
-    setPreviewModalOpen(false);
     setExporting(true);
     setExportProgress(0);
     setExportMessage("正在创建导出任务。");
@@ -220,32 +212,28 @@ export function useMinimalExportFlow() {
     Boolean(precheck?.summary.can_confirm) &&
     !busy &&
     !exporting &&
-    !previewModalOpen &&
     (inlineError?.code === "EXPORT_FAILED" || inlineError?.code === "EXPORT_CANCELED");
 
   return {
     health,
     selectedFile,
-    rawText,
+    requirementText,
     phase,
     busy,
-    previewModalOpen,
     precheck,
+    fixApplied,
     exporting,
     exportProgress,
     exportMessage,
     inlineError,
     canRetryExport,
-    privacyAccepted,
-    setPrivacyAccepted,
-    turnstileToken,
-    setTurnstileToken,
     clearAll,
     handleFileSelect,
     handleUploadTrigger,
-    handleTextChange,
+    handleRequirementChange,
+    handleUseExampleRequirement,
     handlePrecheck,
-    handleCancelPreview,
+    handleApplyMockFix,
     handleConfirmExport,
     handleCancelExport,
     handleRetryExport: handleConfirmExport,

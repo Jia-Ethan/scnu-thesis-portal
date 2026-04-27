@@ -1,44 +1,47 @@
 :root {
   color-scheme: light;
-  font-family:
+  --font-sans:
     "SF Pro Display",
+    "SF Pro Text",
+    "Inter",
     "PingFang SC",
     "Hiragino Sans GB",
     "Microsoft YaHei",
     system-ui,
     sans-serif;
-  --bg-page: #f5f8fc;
-  --bg-page-deep: #edf3fa;
-  --bg-panel: rgba(255, 255, 255, 0.92);
+  font-family: var(--font-sans);
+  --bg-page: #f2f4f8;
+  --bg-page-deep: #ebeff5;
+  --bg-panel: rgba(255, 255, 255, 0.94);
   --bg-panel-strong: #ffffff;
-  --bg-panel-soft: #f2f7fd;
-  --bg-panel-overlay: rgba(247, 251, 255, 0.96);
-  --bg-blocking: #fff1f1;
-  --bg-warning: #fff8ec;
-  --bg-ok: #f5fbff;
-  --border-base: rgba(116, 140, 168, 0.22);
-  --border-drag: rgba(97, 160, 226, 0.5);
-  --border-strong: rgba(102, 138, 180, 0.36);
-  --border-accent: rgba(109, 177, 255, 0.55);
-  --text-primary: #132033;
-  --text-secondary: #4d5f78;
-  --text-tertiary: #7d8ca1;
-  --text-danger: #a5484d;
-  --text-warning: #8a6200;
-  --text-info: #336da8;
-  --accent: #7ec3ff;
-  --accent-strong: #4598eb;
-  --accent-deep: #2f74bf;
-  --danger: #e78b8f;
-  --warning: #f0c36b;
-  --success: #89d2bf;
-  --shadow-soft: 0 18px 48px rgba(161, 186, 214, 0.2);
-  --shadow-panel: 0 24px 60px rgba(180, 201, 226, 0.18);
-  --shadow-modal: 0 32px 80px rgba(106, 135, 168, 0.25);
-  --focus-ring: rgba(126, 195, 255, 0.22);
-  --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 22px;
+  --bg-panel-soft: #f7f8fb;
+  --bg-panel-overlay: rgba(252, 252, 253, 0.98);
+  --bg-blocking: #fff0f1;
+  --bg-warning: #fff7eb;
+  --bg-ok: #ebf5ef;
+  --border-base: rgba(15, 23, 42, 0.08);
+  --border-drag: rgba(10, 100, 232, 0.24);
+  --border-strong: rgba(15, 23, 42, 0.16);
+  --border-accent: rgba(10, 100, 232, 0.18);
+  --text-primary: #0f1728;
+  --text-secondary: #4b5565;
+  --text-tertiary: #7d8695;
+  --text-danger: #a95359;
+  --text-warning: #9a6a12;
+  --text-info: #0a64e8;
+  --accent: #0a64e8;
+  --accent-strong: #0453c7;
+  --accent-deep: #003a96;
+  --danger: #c97379;
+  --warning: #d2a244;
+  --success: #5e8c72;
+  --shadow-soft: 0 20px 42px rgba(15, 23, 42, 0.06);
+  --shadow-panel: 0 28px 60px rgba(15, 23, 42, 0.08);
+  --shadow-modal: 0 40px 82px rgba(15, 23, 42, 0.12);
+  --focus-ring: rgba(10, 100, 232, 0.12);
+  --radius-sm: 12px;
+  --radius-md: 18px;
+  --radius-lg: 28px;
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -53,9 +56,9 @@
   --text-md: 1rem;
   --text-lg: 1.125rem;
   --text-xl: 1.75rem;
-  --text-2xl: 2.5rem;
+  --text-2xl: 2.75rem;
   --motion-fast: 160ms;
-  --motion-base: 260ms;
+  --motion-base: 240ms;
   --motion-slow: 420ms;
   --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
 }

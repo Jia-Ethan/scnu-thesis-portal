@@ -10,12 +10,14 @@ body,
 
 body {
   margin: 0;
+  font-family: var(--font-sans);
   background:
-    radial-gradient(circle at 18% 14%, rgba(173, 221, 255, 0.34), transparent 30%),
-    radial-gradient(circle at 84% 10%, rgba(255, 255, 255, 0.94), transparent 28%),
-    radial-gradient(circle at 50% 86%, rgba(219, 235, 248, 0.52), transparent 34%),
-    linear-gradient(180deg, #fbfdff 0%, var(--bg-page) 55%, var(--bg-page-deep) 100%);
+    radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.96), transparent 30%),
+    radial-gradient(circle at 84% 10%, rgba(214, 225, 245, 0.48), transparent 26%),
+    linear-gradient(180deg, #fbfcfe 0%, var(--bg-page) 50%, var(--bg-page-deep) 100%);
   color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 button,
@@ -41,4 +43,8 @@ h1,
 h2,
 h3 {
   margin: 0;
+}
+
+a {
+  color: inherit;
 }
